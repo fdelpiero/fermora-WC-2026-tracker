@@ -194,7 +194,7 @@
     <div class="statbar">
       <div class="stat go"><div class="n" id="st-played">0</div><div class="l" id="st1l"></div></div>
       <div class="stat"><div class="n" id="st-groups">0/12</div><div class="l" id="st2l"></div></div>
-      <div class="stat"><div class="n" id="st-ko">0/31</div><div class="l" id="st3l"></div></div>
+      <div class="stat"><div class="n" id="st-ko">0/32</div><div class="l" id="st3l"></div></div>
     </div>
     <div class="syncrow">
       <button class="syncbtn" id="syncBtn"></button>
@@ -657,7 +657,7 @@ function downloadICS(events,name){
   const blob=new Blob([body],{type:'text/calendar;charset=utf-8;method=PUBLISH'}),url=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=url;
   a.download=isSingle?'add-world-cup-match-event.ics':safeFile(name)+'.ics';
-  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
 }
 function teamMatchesForCalendar(name,ctx){
   const loc=teamGroup(name);if(!loc)return[];const out=[];
@@ -775,7 +775,7 @@ document.addEventListener('input',e=>{
   STATE.gs[inp.dataset.k]=STATE.gs[inp.dataset.k]||{a:'',b:''};STATE.gs[inp.dataset.k][inp.dataset.s]=v;inp.classList.toggle('filled',v!=='');
   const k=inp.dataset.k,s=inp.dataset.s,caret=inp.selectionStart;
   renderGroups();const el=document.querySelector(`input[data-k="${k}"][data-s="${s}"]`);if(el){el.focus();try{el.setSelectionRange(caret,caret);}catch(_){}}
-  renderKO();renderTeam();renderStats();save();
+  renderKO();renderTeam();renderDate();renderStats();save();
 });
 document.addEventListener('click',e=>{
   const cal=e.target.closest('[data-cal]');
