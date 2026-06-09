@@ -6,7 +6,7 @@
 <title>World Cup 2026 — Fixture Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Syne:wght@800&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#070a12;--panel:#0e1622;--line:#1f2c3f;--line2:#2a3a52;--ink:#eaf1fb;--muted:#7e93ad;--green:#16e08a;--amber:#ffc23d;--red:#ff5d6c;}
   *{box-sizing:border-box;margin:0;padding:0}
@@ -105,7 +105,15 @@
   .ko.final-card{border-color:#5a4410}
   .ko.final-card .mlabel b{color:var(--amber)}
   .ko-final-wrap{display:flex;flex-direction:column;gap:18px;justify-content:center}
-  .foot{margin-top:26px;border-top:1px solid var(--line);padding-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .foot{margin-top:26px;border-top:1px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:16px}
+  .foot-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .mlab a{display:inline-flex;align-items:center;gap:9px;text-decoration:none;padding:12px 18px;border:1px solid #1a2030;border-radius:14px;background:#0a0f18;transition:.2s;width:max-content;max-width:100%}
+  .mlab a:hover{border-color:#00e5a066;background:#0c1218}
+  .mlab .mw{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;letter-spacing:-.03em;line-height:1;display:flex}
+  .mlab .mm{color:#e8e8f0}.mlab .mg{color:#00e5a0}
+  .mlab .sep{width:1px;height:18px;background:#1f2c3f;flex:none}
+  .mlab .ig{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--muted);font-family:'Manrope',sans-serif}
+  .mlab a:hover .ig{color:#e8e8f0}
   .note{color:var(--muted);font-size:11.5px;max-width:680px;line-height:1.5}
   .note b{color:var(--ink)}
   button.reset{background:#1a0e10;border:1px solid #45222a;color:var(--red);font-weight:800;font-size:12px;padding:9px 15px;border-radius:10px;cursor:pointer}
@@ -202,8 +210,19 @@
   </section>
 
   <div class="foot">
-    <div class="note" id="footNote"></div>
-    <button class="reset" id="reset"></button>
+    <div id="mlabLabel" style="font-size:10px;color:#7e93ad;text-transform:uppercase;letter-spacing:.8px;font-weight:800;margin-bottom:6px"></div>
+    <div class="mlab">
+      <a href="https://www.instagram.com/matelab.ai" target="_blank" rel="noopener">
+        <svg width="22" height="22" viewBox="0 0 52 52" fill="none"><line x1="19" y1="32" x2="26" y2="22" stroke="#00e5a0" stroke-width="1.5" opacity="0.6"/><line x1="26" y1="22" x2="33" y2="32" stroke="#00e5a0" stroke-width="1.5" opacity="0.6"/><line x1="19" y1="32" x2="33" y2="32" stroke="#00e5a0" stroke-width="1.5" opacity="0.4"/><circle cx="26" cy="22" r="3.5" fill="#00e5a0"/><circle cx="19" cy="32" r="3.5" fill="#00e5a0"/><circle cx="33" cy="32" r="3.5" fill="#00e5a0"/><circle cx="26" cy="22" r="1.2" fill="#0a0f18"/><circle cx="19" cy="32" r="1.2" fill="#0a0f18"/><circle cx="33" cy="32" r="1.2" fill="#0a0f18"/></svg>
+        <span class="mw"><span class="mm">mate</span><span class="mg">lab.ai</span></span>
+        <span class="sep"></span>
+        <span class="ig"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg> @matelab.ai</span>
+      </a>
+    </div>
+    <div class="foot-bottom">
+      <div class="note" id="footNote"></div>
+      <button class="reset" id="reset"></button>
+    </div>
   </div>
 </div>
 
@@ -326,8 +345,8 @@ const DICT={
   pickteam:"Pick a team",groupstage:"Group stage",komatches:"Knockout matches",vs:"vs",tbd:"TBD",
   st_ingroup:"In Group {g}",st_won:"Through · won group",st_ru:"Through · runner-up",st_3:"Through · best 3rd",st_out3:"3rd place — out",st_elim:"Eliminated",st_champ:"🏆 World Champions",
   finished:"finished {o}",adv_note:"Advanced — knockout opponents appear here as the bracket resolves.",pick_prompt:"Pick a team above to see its full schedule.",
-  footNote:"<b>Everything saves automatically</b> in your browser. Exact kick-off times come from the official FIFA calendar and convert live to your chosen timezone. For a <b>real live score</b>, ask Claude in chat and type it in.<br><br>Developed by <b>Fernando Mora</b> · IG: @matelab.ai",
-  reset:"Reset everything",confirm_reset:"Clear all scores and knockout picks?",
+  footNote:"<b>Everything saves automatically</b> in your browser. Kick-off times come from the official FIFA calendar and convert live to your chosen timezone.",
+  dev_by:"Developed by",reset:"Reset everything",confirm_reset:"Clear all scores and knockout picks?",
   tz_top:"Quick select",tz_am:"Americas",tz_eu:"Europe",tz_af:"Africa & Middle East",tz_ap:"Asia-Pacific"},
  es:{subtitle:"Estados Unidos · Canadá · México  |  11 jun – 19 jul · 48 equipos · 104 partidos",
   st_gamesin:"Partidos de grupo",st_groups:"Grupos definidos",st_ko:"Eliminatorias elegidas",timesin:"Selecciona tu zona horaria",champions:"Campeón del Mundo",
@@ -342,8 +361,8 @@ const DICT={
   pickteam:"Elige un equipo",groupstage:"Fase de grupos",komatches:"Eliminatorias",vs:"vs",tbd:"Por definir",
   st_ingroup:"En el Grupo {g}",st_won:"Clasificado · 1º de grupo",st_ru:"Clasificado · 2º de grupo",st_3:"Clasificado · mejor 3º",st_out3:"3º — eliminado",st_elim:"Eliminado",st_champ:"🏆 Campeón del Mundo",
   finished:"terminó {o}",adv_note:"Clasificado — los rivales de eliminatoria aparecerán a medida que se defina el cuadro.",pick_prompt:"Elige un equipo arriba para ver todos sus partidos.",
-  footNote:"<b>Todo se guarda automáticamente</b> en tu navegador. Los horarios de inicio provienen del calendario oficial de la FIFA y se convierten al instante a tu zona horaria elegida. Para un <b>resultado en vivo</b>, pídeselo a Claude en el chat y anótalo aquí.<br><br>Desarrollado por <b>Fernando Mora</b> · IG: @matelab.ai",
-  reset:"Reiniciar todo",confirm_reset:"¿Borrar todos los marcadores y selecciones?",
+  footNote:"<b>Todo se guarda automáticamente</b> en tu navegador. Los horarios provienen del calendario oficial de la FIFA y se convierten a tu zona horaria elegida.",
+  dev_by:"Desarrollado por",reset:"Reiniciar todo",confirm_reset:"¿Borrar todos los marcadores y selecciones?",
   tz_top:"Acceso rápido",tz_am:"América",tz_eu:"Europa",tz_af:"África y Medio Oriente",tz_ap:"Asia-Pacífico"}
 };
 const t=k=>{const v=DICT[STATE.lang][k];return v!=null?v:DICT.en[k];};
@@ -548,7 +567,7 @@ function applyChrome(){
   document.getElementById('tzlbl').textContent=t('timesin');
   document.getElementById('champLbl').textContent=t('champions');
   document.getElementById('koIntro').innerHTML=t('koIntro');
-  document.getElementById('legend').innerHTML=`<span><i style="background:var(--green)"></i>${t('lg_win')}</span><span><i style="background:#7be0b0"></i>${t('lg_ru')}</span><span><i style="background:var(--amber)"></i>${t('lg_3')}</span>`;
+  document.getElementById('mlabLabel').textContent=t('dev_by');document.getElementById('legend').innerHTML='';
   document.getElementById('footNote').innerHTML=t('footNote');
   document.getElementById('reset').textContent=t('reset');
   document.getElementById('teamSelLbl').textContent=t('pickteam');
