@@ -138,7 +138,8 @@
   .tstat.q{color:var(--green);border-color:#2e5a44;background:#0c3a2722}
   .tstat.o{color:var(--red);border-color:#45222a;background:#1a0e1022}
   .tphase{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.9px;font-weight:800;margin:16px 2px 8px}
-  .tmatch{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);background:var(--panel);border-radius:12px;margin-bottom:8px}
+  .tmatch{display:block;padding:12px 14px;border:1px solid var(--line);background:var(--panel);border-radius:12px;margin-bottom:8px}
+  .tmatch-main{display:flex;align-items:center;gap:12px}
   .tmatch .when{min-width:150px}
   .tmatch .when .d{font-size:11px;font-weight:800;color:var(--ink);letter-spacing:.3px}
   .tmatch .when .t{font-size:11px;color:var(--green);font-weight:700}
@@ -173,7 +174,7 @@
   .koactions{display:none;gap:7px;flex-wrap:wrap;padding:8px 10px;border-top:1px solid #16212f;background:#0b121c}
   .ko.showcal .koactions{display:flex}
   ::-webkit-scrollbar{height:9px;width:9px}::-webkit-scrollbar-thumb{background:#22344a;border-radius:8px}::-webkit-scrollbar-track{background:transparent}
-  @media(max-width:560px){.ggrid{grid-template-columns:1fr}.stat{flex:1;min-width:0}.langtoggle{position:static;margin-top:12px;width:max-content}}
+  @media(max-width:560px){.ggrid{grid-template-columns:1fr}.stat{flex:1;min-width:0}.langtoggle{position:static;margin-top:12px;width:max-content}.tmatch-main{align-items:flex-start}.tmatch .when{min-width:120px}.tmatch .res{min-width:42px}}
 </style>
 </head>
 <body>
@@ -535,7 +536,7 @@ function tmatchHTML(m){
   if(m.res){if(m.ko)res=`<span class="rb ${m.res.o}">${m.res.o}</span>`;else res=`${m.res.my}–${m.res.ot} <span class="rb ${m.res.o}">${m.res.o}</span>`;}
   const oppImg=m.opp?`<img src="${flagOf(m.opp)}" alt="">`:'';
   const midId=m.id||m.key;
-  return `<div class="tmatch calpick" data-match-id="${midId}"><div class="when"><div class="d">${f.date}</div><div class="t">${f.time} ${tzShort()}</div><div class="v">${m.phase} · ${dispVenue(m.v)}</div></div><div class="opp"><span class="vs">${t('vs')}</span>${oppImg}<span class="on">${m.opp?dispName(m.opp):t('tbd')}</span></div><div class="res">${res}</div><div class="fxactions"><button class="calbtn" data-cal="google" data-type="match" data-id="${midId}">${t('cal_google')}</button><button class="calbtn alt" data-cal="ics" data-type="match" data-id="${midId}">${t('cal_ics')}</button></div></div>`;
+  return `<div class="tmatch calpick" data-match-id="${midId}"><div class="tmatch-main"><div class="when"><div class="d">${f.date}</div><div class="t">${f.time} ${tzShort()}</div><div class="v">${m.phase} · ${dispVenue(m.v)}</div></div><div class="opp"><span class="vs">${t('vs')}</span>${oppImg}<span class="on">${m.opp?dispName(m.opp):t('tbd')}</span></div><div class="res">${res}</div></div><div class="fxactions"><button class="calbtn" data-cal="google" data-type="match" data-id="${midId}">${t('cal_google')}</button><button class="calbtn alt" data-cal="ics" data-type="match" data-id="${midId}">${t('cal_ics')}</button></div></div>`;
 }
 function renderTeam(){
   const name=STATE.team,panel=document.getElementById('teamPanel'),sel=document.getElementById('teamSel');
