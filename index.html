@@ -350,7 +350,7 @@ const DICT={
   koIntro:"Finish a group (all 3 matchdays in) and its <b>winner</b> &amp; <b>runner-up</b> drop into the Round of 32. Once <b>all 12 groups</b> are done, the 8 best third-placed teams are ranked and slotted into the official FIFA third-place clusters automatically. Then just <b>tap the team you want to advance</b> in each tie — the bracket fills through to the Final.",
   lg_win:"Group winner",lg_ru:"Runner-up",lg_3:"Best 3rd place",
   rt_r32:"Round of 32",rt_r16:"Round of 16",rt_qf:"Quarter-finals",rt_sf:"Semi-finals",rt_final:"Final",rt_third:"Third place",
-  rng_r32:"28 Jun – 3 Jul",rng_r16:"4 – 7 Jul",rng_qf:"9 – 11 Jul",rng_sf:"14 – 15 Jul",final_sub:"MetLife, New York",third_lbl:"— Third place —",
+  rng_r32:"28 Jun – 3 Jul",rng_r16:"4 – 7 Jul",rng_qf:"9 – 11 Jul",rng_sf:"14 – 15 Jul",final_sub:"MetLife Stadium, New Jersey",third_lbl:"— Third place —",
   match:"Match",s_winner:"Winner",s_runnerup:"Runner-up",s_third:"3rd",s_loser:"Loser",
   pickteam:"Pick a team",groupstage:"Group stage",komatches:"Knockout matches",vs:"vs",tbd:"TBD",
   st_ingroup:"In Group {g}",st_won:"Through · won group",st_ru:"Through · runner-up",st_3:"Through · best 3rd",st_out3:"3rd place — out",st_elim:"Eliminated",st_champ:"🏆 World Champions",
@@ -366,7 +366,7 @@ const DICT={
   koIntro:"Completa un grupo (las 3 jornadas) y su <b>1º</b> y <b>2º</b> pasan a los dieciseisavos. Cuando estén <b>los 12 grupos</b> definidos, los 8 mejores terceros se ordenan y se asignan automáticamente a los grupos de terceros oficiales de la FIFA. Luego solo <b>toca el equipo que quieres que avance</b> en cada llave y el cuadro se completa hasta la Final.",
   lg_win:"Ganador de grupo",lg_ru:"Segundo",lg_3:"Mejor 3º",
   rt_r32:"Dieciseisavos",rt_r16:"Octavos",rt_qf:"Cuartos",rt_sf:"Semifinales",rt_final:"Final",rt_third:"Tercer puesto",
-  rng_r32:"28 jun – 3 jul",rng_r16:"4 – 7 jul",rng_qf:"9 – 11 jul",rng_sf:"14 – 15 jul",final_sub:"MetLife, Nueva York",third_lbl:"— Tercer puesto —",
+  rng_r32:"28 jun – 3 jul",rng_r16:"4 – 7 jul",rng_qf:"9 – 11 jul",rng_sf:"14 – 15 jul",final_sub:"MetLife Stadium, Nueva Jersey",third_lbl:"— Tercer puesto —",
   match:"Partido",s_winner:"Ganador",s_runnerup:"Segundo",s_third:"3º",s_loser:"Perdedor",
   pickteam:"Elige un equipo",groupstage:"Fase de grupos",komatches:"Eliminatorias",vs:"vs",tbd:"Por definir",
   st_ingroup:"En el Grupo {g}",st_won:"Clasificado · 1º de grupo",st_ru:"Clasificado · 2º de grupo",st_3:"Clasificado · mejor 3º",st_out3:"3º — eliminado",st_elim:"Eliminado",st_champ:"🏆 Campeón del Mundo",
@@ -428,7 +428,7 @@ const KO_META={
  m89:["2026-07-04T17:00:00-04:00","Philadelphia"],m90:["2026-07-04T13:00:00-04:00","Houston"],m91:["2026-07-05T16:00:00-04:00","New York"],m92:["2026-07-05T20:00:00-04:00","Mexico City"],
  m93:["2026-07-06T15:00:00-04:00","Dallas"],m94:["2026-07-06T20:00:00-04:00","Seattle"],m95:["2026-07-07T12:00:00-04:00","Atlanta"],m96:["2026-07-07T16:00:00-04:00","Vancouver"],
  m97:["2026-07-09T16:00:00-04:00","Boston"],m98:["2026-07-10T15:00:00-04:00","Los Angeles"],m99:["2026-07-11T17:00:00-04:00","Miami"],m100:["2026-07-11T21:00:00-04:00","Kansas City"],
- m101:["2026-07-14T15:00:00-04:00","Dallas"],m102:["2026-07-15T15:00:00-04:00","Atlanta"],m103:["2026-07-18T17:00:00-04:00","Miami"],m104:["2026-07-19T15:00:00-04:00","New York"]
+ m101:["2026-07-14T15:00:00-04:00","Dallas"],m102:["2026-07-15T15:00:00-04:00","Atlanta"],m103:["2026-07-18T17:00:00-04:00","Miami"],m104:["2026-07-19T15:00:00-04:00","MetLife Stadium, New Jersey"]
 };
 const R32O=['m74','m77','m73','m75','m83','m84','m81','m82','m76','m78','m79','m80','m86','m88','m85','m87'];
 const R16O=['m89','m90','m93','m94','m91','m92','m95','m96'];
@@ -495,7 +495,8 @@ function teamRow(name,matchId,kind){
 }
 function koCard(id,ctx,finalCard){
   const m=KO[id],tt=mt(m,ctx),meta=KO_META[id],f=fmtDT(meta[0],STATE.tz,STATE.lang);
-  return `<div class="ko ${finalCard?'final-card':''}"><div class="mlabel"><b>${t('match')} ${id.slice(1)}</b> · ${f.date} · <span class="zt">${f.time} ${tzShort()}</span> · ${dispVenue(meta[1])}</div>${teamRow(tt.a,id,slotKind(m.a))}${teamRow(tt.b,id,slotKind(m.b))}</div>`;
+  const mlbl=id==='m104'?t('rt_final').toUpperCase():id==='m103'?t('rt_third'):t('match')+' '+id.slice(1);
+  return `<div class="ko ${finalCard?'final-card':''}"><div class="mlabel"><b>${mlbl}</b> · ${f.date} · <span class="zt">${f.time} ${tzShort()}</span> · ${dispVenue(meta[1])}</div>${teamRow(tt.a,id,slotKind(m.a))}${teamRow(tt.b,id,slotKind(m.b))}</div>`;
 }
 function renderKO(){
   const ctx=buildCtx();if(pruneKO(ctx))save();
