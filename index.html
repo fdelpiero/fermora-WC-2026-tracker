@@ -158,6 +158,20 @@
   .dmid{color:var(--muted);font-weight:800;font-size:13px}
   .fxrow .t .win{color:var(--green)}
   .fxrow .t .ph{color:var(--muted);font-style:italic;font-weight:600;font-size:11px}
+
+  .calbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 2px 14px}
+  .calbtn{appearance:none;border:1px solid #2e5a44;background:#0c3a2722;color:var(--green);font-family:inherit;font-weight:800;font-size:10.5px;letter-spacing:.35px;text-transform:uppercase;padding:7px 10px;border-radius:9px;cursor:pointer;transition:.15s}
+  .calbtn:hover{background:#0c3a2744;border-color:var(--green);transform:translateY(-1px)}
+  .calbtn.alt{border-color:var(--line2);background:#0c1521;color:var(--ink)}
+  .calbtn.alt:hover{border-color:var(--green);color:var(--green)}
+  .fx.calpick{cursor:pointer;transition:.15s}
+  .fx.calpick:hover{border-color:#2e5a44;background:#0f1b29}
+  .fxactions{display:none;gap:7px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid #16212f}
+  .fx.showcal .fxactions{display:flex}
+  .tmatch.showcal .fxactions{display:flex}
+  .ko .mlabel{cursor:pointer}
+  .koactions{display:none;gap:7px;flex-wrap:wrap;padding:8px 10px;border-top:1px solid #16212f;background:#0b121c}
+  .ko.showcal .koactions{display:flex}
   ::-webkit-scrollbar{height:9px;width:9px}::-webkit-scrollbar-thumb{background:#22344a;border-radius:8px}::-webkit-scrollbar-track{background:transparent}
   @media(max-width:560px){.ggrid{grid-template-columns:1fr}.stat{flex:1;min-width:0}.langtoggle{position:static;margin-top:12px;width:max-content}}
 </style>
@@ -356,7 +370,7 @@ const DICT={
   st_ingroup:"In Group {g}",st_won:"Through · won group",st_ru:"Through · runner-up",st_3:"Through · best 3rd",st_out3:"3rd place — out",st_elim:"Eliminated",st_champ:"🏆 World Champions",
   finished:"finished {o}",adv_note:"Advanced — knockout opponents appear here as the bracket resolves.",pick_prompt:"Pick a team above to see its full schedule.",
   footNote:"<b>Everything saves automatically</b> in your browser. Kick-off times come from the official FIFA calendar and convert live to your chosen timezone.",
-  dev_by:"Developed by",sync_btn:"⟳ Sync Scores",sync_ing:"Syncing…",sync_done:"{n} results synced ✓",sync_none:"No new results available",sync_err:"Sync failed — try again",reset:"Reset everything",confirm_reset:"Clear all scores and knockout picks?",
+  dev_by:"Developed by",sync_btn:"⟳ Sync Scores",cal_google:"Google Calendar",cal_ics:"Apple / iCal",cal_match:"Add match",cal_date:"Add this date",cal_team:"Add team calendar",cal_hint:"Tap a match to add it to your calendar",sync_ing:"Syncing…",sync_done:"{n} results synced ✓",sync_none:"No new results available",sync_err:"Sync failed — try again",reset:"Reset everything",confirm_reset:"Clear all scores and knockout picks?",
   tz_top:"Quick select",tz_am:"Americas",tz_eu:"Europe",tz_af:"Africa & Middle East",tz_ap:"Asia-Pacific"},
  es:{subtitle:"Estados Unidos · Canadá · México  |  11 jun – 19 jul · 48 equipos · 104 partidos",
   st_gamesin:"Partidos de grupo",st_groups:"Grupos definidos",st_ko:"Eliminatorias elegidas",timesin:"Selecciona tu zona horaria",champions:"Campeón del Mundo",
@@ -372,7 +386,7 @@ const DICT={
   st_ingroup:"En el Grupo {g}",st_won:"Clasificado · 1º de grupo",st_ru:"Clasificado · 2º de grupo",st_3:"Clasificado · mejor 3º",st_out3:"3º — eliminado",st_elim:"Eliminado",st_champ:"🏆 Campeón del Mundo",
   finished:"terminó {o}",adv_note:"Clasificado — los rivales de eliminatoria aparecerán a medida que se defina el cuadro.",pick_prompt:"Elige un equipo arriba para ver todos sus partidos.",
   footNote:"<b>Todo se guarda automáticamente</b> en tu navegador. Los horarios provienen del calendario oficial de la FIFA y se convierten a tu zona horaria elegida.",
-  dev_by:"Desarrollado por",sync_btn:"⟳ Sincronizar",sync_ing:"Sincronizando…",sync_done:"{n} resultados sincronizados ✓",sync_none:"Sin resultados nuevos",sync_err:"Error — intenta de nuevo",reset:"Reiniciar todo",confirm_reset:"¿Borrar todos los marcadores y selecciones?",
+  dev_by:"Desarrollado por",sync_btn:"⟳ Sincronizar",cal_google:"Google Calendar",cal_ics:"Apple / iCal",cal_match:"Añadir partido",cal_date:"Añadir fecha",cal_team:"Añadir equipo",cal_hint:"Toca un partido para añadirlo a tu calendario",sync_ing:"Sincronizando…",sync_done:"{n} resultados sincronizados ✓",sync_none:"Sin resultados nuevos",sync_err:"Error — intenta de nuevo",reset:"Reiniciar todo",confirm_reset:"¿Borrar todos los marcadores y selecciones?",
   tz_top:"Acceso rápido",tz_am:"América",tz_eu:"Europa",tz_af:"África y Medio Oriente",tz_ap:"Asia-Pacífico"}
 };
 const t=k=>{const v=DICT[STATE.lang][k];return v!=null?v:DICT.en[k];};
@@ -473,10 +487,11 @@ function renderGroups(){
       fx+=`<div class="md">${t('matchday')} ${mdi+1}</div>`;
       md.forEach((pair,pi)=>{
         const h=GROUPS[g][pair[0]],a=GROUPS[g][pair[1]],key=`${g}-${mdi}-${pi}`,s=STATE.gs[key]||{a:'',b:''},meta=SCHED[key],f=fmtDT(meta[0],STATE.tz,STATE.lang);
-        fx+=`<div class="fx"><div class="fxmeta"><span>${f.date}</span><span class="zt">${f.time} ${tzShort()}</span><span class="vn">· ${dispVenue(meta[1])}</span></div>
+        fx+=`<div class="fx calpick" data-match-id="${key}"><div class="fxmeta"><span>${f.date}</span><span class="zt">${f.time} ${tzShort()}</span><span class="vn">· ${dispVenue(meta[1])}</span></div>
           <div class="fxrow"><div class="t home"><span>${dispName(h[0])}</span>${flag(h[1],14)}</div>
           <div class="sc"><input type="number" min="0" inputmode="numeric" data-k="${key}" data-s="a" value="${s.a??''}" class="${s.a!==''&&s.a!=null?'filled':''}"><span class="dash">–</span><input type="number" min="0" inputmode="numeric" data-k="${key}" data-s="b" value="${s.b??''}" class="${s.b!==''&&s.b!=null?'filled':''}"></div>
-          <div class="t away">${flag(a[1],14)}<span>${dispName(a[0])}</span></div></div></div>`;
+          <div class="t away">${flag(a[1],14)}<span>${dispName(a[0])}</span></div></div>
+          <div class="fxactions"><button class="calbtn" data-cal="google" data-type="match" data-id="${key}">${t('cal_google')}</button><button class="calbtn alt" data-cal="ics" data-type="match" data-id="${key}">${t('cal_ics')}</button></div></div>`;
       });
     });
     const card=document.createElement('div');card.className='group';
@@ -496,7 +511,7 @@ function teamRow(name,matchId,kind){
 function koCard(id,ctx,finalCard){
   const m=KO[id],tt=mt(m,ctx),meta=KO_META[id],f=fmtDT(meta[0],STATE.tz,STATE.lang);
   const mlbl=id==='m104'?t('rt_final').toUpperCase():id==='m103'?t('rt_third'):t('match')+' '+id.slice(1);
-  return `<div class="ko ${finalCard?'final-card':''}"><div class="mlabel"><b>${mlbl}</b> · ${f.date} · <span class="zt">${f.time} ${tzShort()}</span> · ${dispVenue(meta[1])}</div>${teamRow(tt.a,id,slotKind(m.a))}${teamRow(tt.b,id,slotKind(m.b))}</div>`;
+  return `<div class="ko calpick ${finalCard?'final-card':''}" data-match-id="${id}"><div class="mlabel"><b>${mlbl}</b> · ${f.date} · <span class="zt">${f.time} ${tzShort()}</span> · ${dispVenue(meta[1])}</div><div class="koactions"><button class="calbtn" data-cal="google" data-type="match" data-id="${id}">${t('cal_google')}</button><button class="calbtn alt" data-cal="ics" data-type="match" data-id="${id}">${t('cal_ics')}</button></div>${teamRow(tt.a,id,slotKind(m.a))}${teamRow(tt.b,id,slotKind(m.b))}</div>`;
 }
 function renderKO(){
   const ctx=buildCtx();if(pruneKO(ctx))save();
@@ -519,7 +534,8 @@ function tmatchHTML(m){
   let res='<span class="pend">—</span>';
   if(m.res){if(m.ko)res=`<span class="rb ${m.res.o}">${m.res.o}</span>`;else res=`${m.res.my}–${m.res.ot} <span class="rb ${m.res.o}">${m.res.o}</span>`;}
   const oppImg=m.opp?`<img src="${flagOf(m.opp)}" alt="">`:'';
-  return `<div class="tmatch"><div class="when"><div class="d">${f.date}</div><div class="t">${f.time} ${tzShort()}</div><div class="v">${m.phase} · ${dispVenue(m.v)}</div></div><div class="opp"><span class="vs">${t('vs')}</span>${oppImg}<span class="on">${m.opp?dispName(m.opp):t('tbd')}</span></div><div class="res">${res}</div></div>`;
+  const midId=m.id||m.key;
+  return `<div class="tmatch calpick" data-match-id="${midId}"><div class="when"><div class="d">${f.date}</div><div class="t">${f.time} ${tzShort()}</div><div class="v">${m.phase} · ${dispVenue(m.v)}</div></div><div class="opp"><span class="vs">${t('vs')}</span>${oppImg}<span class="on">${m.opp?dispName(m.opp):t('tbd')}</span></div><div class="res">${res}</div><div class="fxactions"><button class="calbtn" data-cal="google" data-type="match" data-id="${midId}">${t('cal_google')}</button><button class="calbtn alt" data-cal="ics" data-type="match" data-id="${midId}">${t('cal_ics')}</button></div></div>`;
 }
 function renderTeam(){
   const name=STATE.team,panel=document.getElementById('teamPanel'),sel=document.getElementById('teamSel');
@@ -538,16 +554,17 @@ function renderTeam(){
     if(pair[0]===loc.i||pair[1]===loc.i){
       const oppI=pair[0]===loc.i?pair[1]:pair[0],key=`${loc.g}-${mdi}-${pi}`,s=STATE.gs[key],meta=SCHED[key];
       let res=null;if(s&&s.a!==''&&s.a!=null&&s.b!==''&&s.b!=null){const my=pair[0]===loc.i?+s.a:+s.b,ot=pair[0]===loc.i?+s.b:+s.a;res={my,ot,o:my>ot?'W':my<ot?'L':'D'};}
-      gm.push({iso:meta[0],v:meta[1],opp:GROUPS[loc.g][oppI][0],res,phase:t('matchday')+' '+(mdi+1)});
+      gm.push({iso:meta[0],v:meta[1],opp:GROUPS[loc.g][oppI][0],res,phase:t('matchday')+' '+(mdi+1),key});
     }
   }));
   gm.sort((a,b)=>new Date(a.iso)-new Date(b.iso));
   const km=[];
   ['m73','m74','m75','m76','m77','m78','m79','m80','m81','m82','m83','m84','m85','m86','m87','m88','m89','m90','m91','m92','m93','m94','m95','m96','m97','m98','m99','m100','m101','m102','m103','m104'].forEach(id=>{
     const tt=mt(KO[id],ctx);if(tt.a!==name&&tt.b!==name)return;const meta=KO_META[id];let res=null;if(STATE.ko[id])res={o:STATE.ko[id]===name?'W':'L'};
-    km.push({iso:meta[0],v:meta[1],opp:tt.a===name?tt.b:tt.a,res,phase:roundName(id),ko:true});
+    km.push({iso:meta[0],v:meta[1],opp:tt.a===name?tt.b:tt.a,res,phase:roundName(id),ko:true,id});
   });
   let h=`<div class="teamhead"><div class="tbig"><img src="${flagOf(name)}" alt=""><div><div class="tnm">${dispName(name)}</div><div class="tgr">${t('group')} ${loc.g}${tbl.complete?' · '+t('finished').replace('{o}',ord(pos)):''}</div></div></div><span class="tstat ${cls}">${statusTxt}</span></div>`;
+  h+=calActionsICSOnlyHTML(name,'team',t('cal_team'));
   h+=`<div class="tphase">${t('groupstage')}</div>`;gm.forEach(m=>h+=tmatchHTML(m));
   if(km.length){h+=`<div class="tphase">${t('komatches')}</div>`;km.forEach(m=>h+=tmatchHTML(m));}
   else if(tbl.complete&&cls==='q'){h+=`<div class="tempty">${t('adv_note')}</div>`;}
@@ -601,6 +618,54 @@ function localDate(iso,zone,lang){
   const lg=tp=>{const x=lp.find(o=>o.type===tp);return x?x.value:'';};
   return {key,label:`${lg('weekday')} ${lg('day')} ${lg('month')}`.replace(/\./g,'').toUpperCase()};
 }
+function escHTML(str){return String(str||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function addHours(iso,h){return new Date(new Date(iso).getTime()+h*3600000).toISOString();}
+function calStamp(iso){return new Date(iso).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');}
+function calText(str){return String(str||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');}
+function safeFile(str){return String(str||'calendar').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80)||'calendar';}
+function matchInfo(m,ctx){
+  let home,away,phase;
+  if(m.kind==='g'){
+    home=dispName(m.home);away=dispName(m.away);phase=`${t('group')} ${m.g} · ${t('matchday')} ${m.mdi+1}`;
+  }else{
+    const mm=KO[m.id],tt=mt(mm,ctx);
+    home=tt.a?dispName(tt.a):slotKind(mm.a);away=tt.b?dispName(tt.b):slotKind(mm.b);phase=`${roundName(m.id)} · ${t('match')} ${m.id.slice(1)}`;
+  }
+  return {title:`World Cup 2026: ${home} ${t('vs')} ${away}`,home,away,phase,venue:dispVenue(m.v),start:m.iso,end:addHours(m.iso,m.kind==='k'?3:2)};
+}
+function googleCalURL(ev){
+  const qs=new URLSearchParams({action:'TEMPLATE',text:ev.title,dates:`${calStamp(ev.start)}/${calStamp(ev.end)}`,details:`${ev.phase}\nTimezone shown in tracker: ${STATE.tz}`,location:ev.venue});
+  return 'https://calendar.google.com/calendar/render?'+qs.toString();
+}
+function addToGoogleCalendar(events,name){
+  if(events.length===1){window.open(googleCalURL(events[0]),'_blank','noopener');return;}
+  // Google Calendar's direct URL only supports one event. For a full date/team set,
+  // create a Google-compatible .ics file so all selected matches import together.
+  downloadICS(events,name+' Google Calendar');
+  window.open('https://calendar.google.com/calendar/u/0/r/settings','_blank','noopener');
+}
+function eventICS(ev){return ['BEGIN:VEVENT',`UID:${calStamp(ev.start)}-${safeFile(ev.title)}@matelab.ai`,`DTSTAMP:${calStamp(new Date().toISOString())}`,`DTSTART:${calStamp(ev.start)}`,`DTEND:${calStamp(ev.end)}`,`SUMMARY:${calText(ev.title)}`,`DESCRIPTION:${calText(ev.phase+'\nTimezone shown in tracker: '+STATE.tz)}`,`LOCATION:${calText(ev.venue)}`,'STATUS:CONFIRMED','TRANSP:OPAQUE','SEQUENCE:0','END:VEVENT'].join('\r\n');}
+function downloadICS(events,name){
+  const isSingle=events.length===1;
+  // Single-match .ics files are exported as a plain VEVENT import.
+  // No X-WR-CALNAME / calendar feed name is included for single events,
+  // so Apple Calendar should not pre-name a new calendar after the match.
+  const header=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//matelab.ai//World Cup 2026 Tracker//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+  if(!isSingle)header.push(`X-WR-CALNAME:${calText(name)}`);
+  const body=[...header,...events.map(eventICS),'END:VCALENDAR'].join('\r\n');
+  const blob=new Blob([body],{type:'text/calendar;charset=utf-8;method=PUBLISH'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;
+  a.download=isSingle?'add-world-cup-match-event.ics':safeFile(name)+'.ics';
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function teamMatchesForCalendar(name,ctx){
+  const loc=teamGroup(name);if(!loc)return[];const out=[];
+  MD_PAIRS.forEach((md,mdi)=>md.forEach((pair,pi)=>{if(pair[0]===loc.i||pair[1]===loc.i){const meta=SCHED[`${loc.g}-${mdi}-${pi}`];out.push({iso:meta[0],v:meta[1],kind:'g',g:loc.g,mdi,home:GROUPS[loc.g][pair[0]][0],away:GROUPS[loc.g][pair[1]][0]});}}));
+  Object.keys(KO_META).forEach(id=>{const tt=mt(KO[id],ctx);if(tt.a===name||tt.b===name){const meta=KO_META[id];out.push({iso:meta[0],v:meta[1],kind:'k',id});}});
+  return out.sort((a,b)=>new Date(a.iso)-new Date(b.iso));
+}
+function calActionsHTML(id,type,label){return `<div class="calbar"><button class="calbtn" data-cal="google" data-type="${type}" data-id="${escHTML(id)}">${t('cal_google')}</button><button class="calbtn alt" data-cal="ics" data-type="${type}" data-id="${escHTML(id)}">${label}</button></div>`;}
+function calActionsICSOnlyHTML(id,type,label){return `<div class="calbar"><button class="calbtn alt" data-cal="ics" data-type="${type}" data-id="${escHTML(id)}">${label}</button></div>`;}
 function dCard(m,ctx){
   const f=fmtDT(m.iso,STATE.tz,STATE.lang);
   let homeName,awayName,homeWin=false,awayWin=false,mid=t('vs'),phase,ha='',aa='',hP=false,aP=false;
@@ -616,10 +681,12 @@ function dCard(m,ctx){
     phase=`${roundName(m.id)} · ${t('match')} ${m.id.slice(1)}`;
   }
   const himg=ha?`<img src="${ha}">`:'';const aimg=aa?`<img src="${aa}">`:'';
-  return `<div class="fx"><div class="fxmeta"><span class="zt">${f.time} ${tzShort()}</span><span class="vn">· ${phase} · ${dispVenue(m.v)}</span></div>
+  const midId=m.kind==='g'?m.key:m.id;
+  return `<div class="fx calpick" data-match-id="${midId}"><div class="fxmeta"><span class="zt">${f.time} ${tzShort()}</span><span class="vn">· ${phase} · ${dispVenue(m.v)}</span></div>
     <div class="fxrow"><div class="t home"><span class="${homeWin?'win':''} ${hP?'ph':''}">${homeName}</span>${himg}</div>
     <div class="sc dmid">${mid}</div>
-    <div class="t away">${aimg}<span class="${awayWin?'win':''} ${aP?'ph':''}">${awayName}</span></div></div></div>`;
+    <div class="t away">${aimg}<span class="${awayWin?'win':''} ${aP?'ph':''}">${awayName}</span></div></div>
+    <div class="fxactions"><button class="calbtn" data-cal="google" data-type="match" data-id="${midId}">${t('cal_google')}</button><button class="calbtn alt" data-cal="ics" data-type="match" data-id="${midId}">${t('cal_ics')}</button></div></div>`;
 }
 function renderDate(){
   const panel=document.getElementById('datePanel'),sel=document.getElementById('dateSel');
@@ -628,7 +695,7 @@ function renderDate(){
   const list=ALL_MATCHES.filter(m=>localDate(m.iso,STATE.tz).key===STATE.dateKey).sort((a,b)=>new Date(a.iso)-new Date(b.iso));
   if(!list.length){panel.innerHTML=`<div class="tempty">${t('date_none')}</div>`;return;}
   const lbl=localDate(list[0].iso,STATE.tz,STATE.lang).label;
-  let h=`<div class="datehead">${lbl} · ${t('date_count').replace('{n}',list.length)}</div>`;
+  let h=`<div class="datehead">${lbl} · ${t('date_count').replace('{n}',list.length)}</div>`+calActionsICSOnlyHTML(STATE.dateKey,'date',t('cal_date'));
   list.forEach(m=>h+=dCard(m,ctx));panel.innerHTML=h;
 }
 function populateDateSelect(){
@@ -710,6 +777,26 @@ document.addEventListener('input',e=>{
   renderKO();renderTeam();renderStats();save();
 });
 document.addEventListener('click',e=>{
+  const cal=e.target.closest('[data-cal]');
+  if(cal){
+    e.stopPropagation();
+    const ctx=buildCtx(),type=cal.dataset.type,id=cal.dataset.id;
+    let matches=[],name='world-cup-2026';
+    if(type==='match'){const m=ALL_MATCHES.find(x=>(x.kind==='g'?x.key:x.id)===id);if(m){matches=[m];name=matchInfo(m,ctx).title;}}
+    if(type==='date'){matches=ALL_MATCHES.filter(m=>localDate(m.iso,STATE.tz).key===id).sort((a,b)=>new Date(a.iso)-new Date(b.iso));name=`World Cup 2026 ${id}`;}
+    if(type==='team'){matches=teamMatchesForCalendar(id,ctx);name=`World Cup 2026 ${id}`;}
+    const events=matches.map(m=>matchInfo(m,ctx));
+    if(!events.length)return;
+    if(cal.dataset.cal==='google') addToGoogleCalendar(events,name);
+    else downloadICS(events,name);
+    return;
+  }
+  const fx=e.target.closest('.fx.calpick[data-match-id]');
+  if(fx&&!e.target.closest('input')){fx.classList.toggle('showcal');return;}
+  const tm=e.target.closest('.tmatch.calpick[data-match-id]');
+  if(tm){tm.classList.toggle('showcal');return;}
+  const kl=e.target.closest('.ko.calpick .mlabel');
+  if(kl){kl.closest('.ko.calpick').classList.toggle('showcal');return;}
   const row=e.target.closest('.ko .row[data-pick]');if(!row)return;
   const m=row.dataset.m,pick=row.dataset.pick;
   if(STATE.ko[m]===pick)delete STATE.ko[m];else STATE.ko[m]=pick;
