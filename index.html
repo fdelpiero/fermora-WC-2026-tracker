@@ -29,6 +29,12 @@
   .stat .n{font-family:'Anton';font-size:22px;line-height:1}
   .stat .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-top:3px}
   .stat.go .n{color:var(--green)}
+  .syncrow{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
+  .syncbtn{background:#0c3a2722;border:1px solid #2e5a44;color:var(--green);font-family:inherit;font-weight:800;font-size:12px;padding:9px 16px;border-radius:10px;cursor:pointer;letter-spacing:.3px;transition:.15s}
+  .syncbtn:hover{background:#0c3a2744;border-color:var(--green)}
+  .syncbtn:disabled{opacity:.5;cursor:not-allowed}
+  .syncstatus{font-size:11px;font-weight:700;color:var(--muted)}
+  .syncstatus.ok{color:var(--green)}.syncstatus.err{color:var(--red)}
   .tzrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px}
   .tzlbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:800}
   select#tzSel{font-family:inherit;font-weight:700;font-size:13px;color:var(--ink);background:#0c1521;border:1px solid var(--line2);border-radius:9px;padding:9px 13px;cursor:pointer;max-width:100%}
@@ -174,6 +180,10 @@
       <div class="stat go"><div class="n" id="st-played">0</div><div class="l" id="st1l"></div></div>
       <div class="stat"><div class="n" id="st-groups">0/12</div><div class="l" id="st2l"></div></div>
       <div class="stat"><div class="n" id="st-ko">0/31</div><div class="l" id="st3l"></div></div>
+    </div>
+    <div class="syncrow">
+      <button class="syncbtn" id="syncBtn"></button>
+      <span class="syncstatus" id="syncStatus"></span>
     </div>
     <div class="tzrow">
       <span class="tzlbl" id="tzlbl"></span>
@@ -346,7 +356,7 @@ const DICT={
   st_ingroup:"In Group {g}",st_won:"Through · won group",st_ru:"Through · runner-up",st_3:"Through · best 3rd",st_out3:"3rd place — out",st_elim:"Eliminated",st_champ:"🏆 World Champions",
   finished:"finished {o}",adv_note:"Advanced — knockout opponents appear here as the bracket resolves.",pick_prompt:"Pick a team above to see its full schedule.",
   footNote:"<b>Everything saves automatically</b> in your browser. Kick-off times come from the official FIFA calendar and convert live to your chosen timezone.",
-  dev_by:"Developed by",reset:"Reset everything",confirm_reset:"Clear all scores and knockout picks?",
+  dev_by:"Developed by",sync_btn:"⟳ Sync Scores",sync_ing:"Syncing…",sync_done:"{n} results synced ✓",sync_none:"No new results available",sync_err:"Sync failed — try again",reset:"Reset everything",confirm_reset:"Clear all scores and knockout picks?",
   tz_top:"Quick select",tz_am:"Americas",tz_eu:"Europe",tz_af:"Africa & Middle East",tz_ap:"Asia-Pacific"},
  es:{subtitle:"Estados Unidos · Canadá · México  |  11 jun – 19 jul · 48 equipos · 104 partidos",
   st_gamesin:"Partidos de grupo",st_groups:"Grupos definidos",st_ko:"Eliminatorias elegidas",timesin:"Selecciona tu zona horaria",champions:"Campeón del Mundo",
@@ -362,7 +372,7 @@ const DICT={
   st_ingroup:"En el Grupo {g}",st_won:"Clasificado · 1º de grupo",st_ru:"Clasificado · 2º de grupo",st_3:"Clasificado · mejor 3º",st_out3:"3º — eliminado",st_elim:"Eliminado",st_champ:"🏆 Campeón del Mundo",
   finished:"terminó {o}",adv_note:"Clasificado — los rivales de eliminatoria aparecerán a medida que se defina el cuadro.",pick_prompt:"Elige un equipo arriba para ver todos sus partidos.",
   footNote:"<b>Todo se guarda automáticamente</b> en tu navegador. Los horarios provienen del calendario oficial de la FIFA y se convierten a tu zona horaria elegida.",
-  dev_by:"Desarrollado por",reset:"Reiniciar todo",confirm_reset:"¿Borrar todos los marcadores y selecciones?",
+  dev_by:"Desarrollado por",sync_btn:"⟳ Sincronizar",sync_ing:"Sincronizando…",sync_done:"{n} resultados sincronizados ✓",sync_none:"Sin resultados nuevos",sync_err:"Error — intenta de nuevo",reset:"Reiniciar todo",confirm_reset:"¿Borrar todos los marcadores y selecciones?",
   tz_top:"Acceso rápido",tz_am:"América",tz_eu:"Europa",tz_af:"África y Medio Oriente",tz_ap:"Asia-Pacífico"}
 };
 const t=k=>{const v=DICT[STATE.lang][k];return v!=null?v:DICT.en[k];};
@@ -572,6 +582,7 @@ function applyChrome(){
   document.getElementById('reset').textContent=t('reset');
   document.getElementById('teamSelLbl').textContent=t('pickteam');
   document.getElementById('dateSelLbl').textContent=t('date_pick');
+  document.getElementById('syncBtn').textContent=t('sync_btn');
   document.querySelectorAll('.tab').forEach(tb=>tb.textContent=t('tab_'+tb.dataset.view));
   document.querySelectorAll('.langtoggle button').forEach(b=>b.classList.toggle('active',b.dataset.lang===STATE.lang));
 }
@@ -629,13 +640,60 @@ function populateDateSelect(){
   sel.value=STATE.dateKey;
 }
 
+/* ============ SCORE SYNC (openfootball) ============ */
+const SYNC_URL='https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json';
+const SYNC_NAMES={"USA":"United States","DR Congo":"Congo DR","Côte d'Ivoire":"Ivory Coast",
+  "Turkey":"Türkiye","Bosnia-Herzegovina":"Bosnia & Herzegovina","Bosnia and Herzegovina":"Bosnia & Herzegovina",
+  "Cabo Verde":"Cape Verde","Curacao":"Curaçao","Korea Republic":"South Korea",
+  "UEFA Path A winner":"Bosnia & Herzegovina","UEFA Path B winner":"Sweden",
+  "UEFA Path C winner":"Türkiye","UEFA Path D winner":"Czechia"};
+function resolveName(n){return SYNC_NAMES[n]||n;}
+function findFxKey(g,t1,t2){
+  const names=GROUPS[g].map(tm=>tm[0]);
+  const i1=names.indexOf(t1),i2=names.indexOf(t2);
+  if(i1<0||i2<0)return null;
+  for(let mdi=0;mdi<MD_PAIRS.length;mdi++)for(let pi=0;pi<MD_PAIRS[mdi].length;pi++){
+    const p=MD_PAIRS[mdi][pi];
+    if(p[0]===i1&&p[1]===i2)return{key:`${g}-${mdi}-${pi}`,flip:false};
+    if(p[0]===i2&&p[1]===i1)return{key:`${g}-${mdi}-${pi}`,flip:true};
+  }
+  return null;
+}
+async function syncScores(){
+  const btn=document.getElementById('syncBtn'),st=document.getElementById('syncStatus');
+  btn.disabled=true; st.textContent=t('sync_ing'); st.className='syncstatus';
+  try{
+    const res=await fetch(SYNC_URL);
+    if(!res.ok) throw new Error(res.status);
+    const data=await res.json();
+    let count=0;
+    (data.matches||[]).forEach(m=>{
+      if(!m.score||!m.score.ft||!m.group)return;
+      const gL=m.group.replace('Group ','');
+      if(!GROUPS[gL])return;
+      const n1=resolveName(m.team1),n2=resolveName(m.team2);
+      const fx=findFxKey(gL,n1,n2);
+      if(!fx)return;
+      const sc=m.score.ft;
+      const a=fx.flip?sc[1]:sc[0], b=fx.flip?sc[0]:sc[1];
+      const old=STATE.gs[fx.key];
+      if(!old||+old.a!==a||+old.b!==b){STATE.gs[fx.key]={a,b};count++;}
+    });
+    if(count>0){save();renderAll();
+      st.textContent=t('sync_done').replace('{n}',count);st.className='syncstatus ok';
+    }else{st.textContent=t('sync_none');st.className='syncstatus';}
+  }catch(e){st.textContent=t('sync_err');st.className='syncstatus err';}
+  btn.disabled=false;
+  setTimeout(()=>{st.textContent='';},5000);
+}
+
 /* ============ STATS ============ */
 function renderStats(){
   let played=0;Object.values(STATE.gs).forEach(s=>{if(s&&s.a!==''&&s.a!=null&&s.b!==''&&s.b!=null)played++;});
   document.getElementById('st-played').textContent=played+'/72';
   const tb=allTables();document.getElementById('st-groups').textContent=GLETTERS.filter(g=>tb[g].complete).length+'/12';
-  let ko=0;Object.keys(STATE.ko).forEach(id=>{if(id!=='m103'&&STATE.ko[id])ko++;});
-  document.getElementById('st-ko').textContent=ko+'/31';
+  let ko=0;Object.keys(STATE.ko).forEach(id=>{if(STATE.ko[id])ko++;});
+  document.getElementById('st-ko').textContent=ko+'/32';
   const champ=STATE.ko['m104'],cE=document.getElementById('champ');
   if(champ){cE.classList.add('show');document.getElementById('champ-name').innerHTML=`<img src="${flagOf(champ)}">${dispName(champ)}`;}else cE.classList.remove('show');
 }
@@ -666,6 +724,7 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
 }));
 document.getElementById('teamSel').addEventListener('change',e=>{STATE.team=e.target.value;renderTeam();save();});
 document.getElementById('dateSel').addEventListener('change',e=>{STATE.dateKey=e.target.value;renderDate();save();});
+document.getElementById('syncBtn').addEventListener('click',syncScores);
 document.getElementById('tzSel').addEventListener('change',e=>{STATE.tz=e.target.value;populateDateSelect();renderGroups();renderKO();renderTeam();renderDate();save();});
 document.querySelectorAll('.langtoggle button').forEach(b=>b.addEventListener('click',()=>{STATE.lang=b.dataset.lang;populateTzSelect();populateTeamSelect();populateDateSelect();renderAll();save();}));
 document.getElementById('reset').addEventListener('click',async()=>{if(!confirm(t('confirm_reset')))return;STATE={gs:{},ko:{},tz:STATE.tz,team:"Colombia",lang:STATE.lang};await save();renderAll();});
