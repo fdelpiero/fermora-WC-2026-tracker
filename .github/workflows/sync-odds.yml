@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch and filter World Cup match winner odds from Polymarket
+      - name: Fetch and filter World Cup match odds from Polymarket
         run: |
           echo "[]" > all-events.json
 
@@ -33,22 +33,22 @@ jobs:
             (
               ((.title // "") + " " + (.slug // "") + " " + (.description // "") + " " +
               ((.tags // []) | map((.label // "") + " " + (.slug // "")) | join(" ")))
-              | test("fifa world cup|2026 fifa world cup|fifwc|fifa.com"; "i")
-            )
-            and
-            (
-              (.markets // [])
-              | any(.sportsMarketType == "moneyline")
+              | test("fifwc|fifa world cup|2026 fifa world cup|fifa.com"; "i")
             )
             and
             (
               ((.title // "") + " " + (.slug // "") + " " + (.description // ""))
-              | test("corner|corners|card|cards|goal|goals|over|under|o/u|first half|total|trump|attend|politics|completed match|crypto|tennis|itf"; "i")
+              | test(" vs\\.? | v | vs "; "i")
+            )
+            and
+            (
+              ((.title // "") + " " + (.slug // "") + " " + (.description // ""))
+              | test("corner|corners|card|cards|yellow|red card|goal scorer|goalscorer|total corners|first corner|over|under|o/u|odd or even|first half|trump|attend|politics|completed match|crypto|tennis|itf"; "i")
               | not
             )
           )]' all-events.json > odds.json
 
-          echo "Filtered World Cup match winner events:"
+          echo "Filtered events:"
           jq 'length' odds.json
           jq '.[0:10] | map(.title)' odds.json
 
