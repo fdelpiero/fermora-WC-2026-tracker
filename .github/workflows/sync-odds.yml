@@ -16,6 +16,7 @@ jobs:
           curl -sf \
             "https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds/?regions=au&markets=h2h&oddsFormat=decimal&apiKey=${{ secrets.ODDS_API_KEY }}" \
             -H "Accept: application/json" \
+            -D /tmp/odds_headers.txt \
             -o odds.json || echo "[]" > odds.json
 
       - name: Fetch World Cup scores
@@ -23,6 +24,7 @@ jobs:
           curl -sf \
             "https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/scores/?daysFrom=3&apiKey=${{ secrets.ODDS_API_KEY }}" \
             -H "Accept: application/json" \
+            -D /tmp/scores_headers.txt \
             -o scores.json || echo "[]" > scores.json
 
       - name: Commit if changed
