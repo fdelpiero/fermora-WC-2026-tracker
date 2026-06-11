@@ -806,12 +806,22 @@ const PM_GAMMA_SOCCER='https://gamma-api.polymarket.com/events?active=true&close
 /* direct slug test — confirms CORS + API access with a known match */
 const PM_SLUG_TEST='https://gamma-api.polymarket.com/events?slug=fifwc-mex-rsa-2026-06-11';
 const ODDS_API_SPORT='soccer_fifa_world_cup';
-/* maps provider spellings -> tracker names (extends SYNC_NAMES) */
+/* maps provider spellings -> tracker canonical names (extends SYNC_NAMES) */
 const ODDS_NAMES=Object.assign({},SYNC_NAMES,{
-  "Korea Republic":"South Korea","Republic of Korea":"South Korea","IR Iran":"Iran","Cote d'Ivoire":"Ivory Coast",
-  "Côte d’Ivoire":"Ivory Coast","Czech Republic":"Czechia","Bosnia and Herzegovina":"Bosnia & Herzegovina",
-  "United States of America":"United States","USMNT":"United States"});
+  "Korea Republic":"South Korea","Republic of Korea":"South Korea",
+  "IR Iran":"Iran","Cote d'Ivoire":"Ivory Coast","Côte d'Ivoire":"Ivory Coast",
+  "Czech Republic":"Czechia","Bosnia and Herzegovina":"Bosnia & Herzegovina",
+  "United States of America":"United States","USMNT":"United States","USA":"United States",
+  "Turkey":"Türkiye","Cabo Verde":"Cape Verde","Cape Verdean Islands":"Cape Verde",
+  "Trinidad and Tobago":"Trinidad & Tobago"});
 function oddsName(n){n=(n||'').trim();return ODDS_NAMES[n]||n;}
+/* returns all lowercase alias strings for a canonical name (for binary-market question matching) */
+function _pmAliases(canonical){
+  const s=new Set([canonical.toLowerCase()]);
+  Object.entries(ODDS_NAMES).forEach(([k,v])=>{if(v===canonical)s.add(k.toLowerCase());});
+  return [...s];
+}
+function _pmTeamIn(str,canonical){return _pmAliases(canonical).some(a=>str.indexOf(a)>-1);}
 /* find a group fixture key from two team names, in any group (order-independent) */
 function findFxByTeams(a,b){
   a=oddsName(a);b=oddsName(b);
@@ -829,6 +839,9 @@ function storeOdds(key,flip,h,d,a,src){
   p.src=src;STATE.odds[key]=p;return true;}
 /* --- helpers for parsing both event-based and market-based Polymarket data --- */
 function _pmMatchOutcomes(mk,A,B){
+  /* (a) multi-outcome: outcomes=["Mexico","Draw","South Africa"]
+     (b) binary yes/no: outcomes=["Yes","No"], question="Will Korea Republic win vs Czechia?"
+         use "Will TEAM win" extraction to avoid matching opponent name in the question */
   let pH=0,pD=0,pA=0;
   mk.forEach(mt=>{
     let outs,prices;try{outs=JSON.parse(mt.outcomes||'[]');prices=JSON.parse(mt.outcomePrices||'[]');}catch(e){return;}
@@ -839,9 +852,17 @@ function _pmMatchOutcomes(mk,A,B){
       else if(oddsName(o)===A||/\b(home)\b/.test(lbl)){pH=Math.max(pH,pr);}
       else if(oddsName(o)===B||/\b(away)\b/.test(lbl)){pA=Math.max(pA,pr);}
       else if(lbl==='yes'){
-        if(/draw|tie/.test(q))pD=Math.max(pD,pr);
-        else if(A&&q.indexOf(A.toLowerCase())>-1)pH=Math.max(pH,pr);
-        else if(B&&q.indexOf(B.toLowerCase())>-1)pA=Math.max(pA,pr);
+        if(/draw|tie/.test(q)){pD=Math.max(pD,pr);}
+        else{
+          /* extract winner name from "Will TEAM win..." to avoid opponent-name false positives */
+          const wm=q.match(/will (.+?)\s+win/i);
+          const winner=(wm?wm[1]:'').trim();
+          if(winner&&_pmTeamIn(winner,A))pH=Math.max(pH,pr);
+          else if(winner&&_pmTeamIn(winner,B))pA=Math.max(pA,pr);
+          /* fallback: only if exactly one team name present in full question */
+          else if(_pmTeamIn(q,A)&&!_pmTeamIn(q,B))pH=Math.max(pH,pr);
+          else if(_pmTeamIn(q,B)&&!_pmTeamIn(q,A))pA=Math.max(pA,pr);
+        }
       }
     });
   });
