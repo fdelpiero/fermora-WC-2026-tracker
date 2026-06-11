@@ -18,6 +18,8 @@ jobs:
             -H "Accept: application/json" \
             -D /tmp/odds_headers.txt \
             -o odds.json || echo "[]" > odds.json
+          grep -i "x-requests" /tmp/odds_headers.txt || true
+
 
       - name: Fetch World Cup scores
         run: |
@@ -26,6 +28,7 @@ jobs:
             -H "Accept: application/json" \
             -D /tmp/scores_headers.txt \
             -o scores.json || echo "[]" > scores.json
+          grep -i "x-requests" /tmp/scores_headers.txt || true
 
       - name: Commit if changed
         run: |
