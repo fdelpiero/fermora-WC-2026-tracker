@@ -741,7 +741,9 @@ function populateDateSelect(){
   sel.value=STATE.dateKey;
 }
 
-/* ============ SCORE SYNC (openfootball) ============ */
+/* ============ SCORE SYNC ============ */
+/* Primary: The Odds API scores endpoint (uses same key as odds sync, daysFrom=3).
+   Fallback: openfootball community JSON on GitHub (no key needed, covers full history). */
 const SYNC_URL='https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json';
 const SYNC_NAMES={"USA":"United States","DR Congo":"Congo DR","Côte d'Ivoire":"Ivory Coast",
   "Turkey":"Türkiye","Bosnia-Herzegovina":"Bosnia & Herzegovina","Bosnia and Herzegovina":"Bosnia & Herzegovina",
@@ -760,26 +762,56 @@ function findFxKey(g,t1,t2){
   }
   return null;
 }
+async function syncScoresFromOddsAPI(){
+  /* Reads scores.json committed to the repo by GitHub Actions — no API credits consumed per user */
+  const res=await fetch('./scores.json?ts='+Date.now());
+  if(!res.ok)return 0;
+  const games=await res.json();
+  if(!Array.isArray(games))return 0;
+  let count=0;
+  games.forEach(gm=>{
+    if(!gm.completed||!gm.scores)return;
+    const fx=findFxByTeams(gm.home_team,gm.away_team);if(!fx)return;
+    /* scores array: [{name:"Mexico",score:"2"},{name:"Colombia",score:"1"}] */
+    const sHome=gm.scores.find(s=>oddsName(s.name)===oddsName(gm.home_team));
+    const sAway=gm.scores.find(s=>oddsName(s.name)===oddsName(gm.away_team));
+    if(!sHome||!sAway)return;
+    const rawH=parseInt(sHome.score,10),rawA=parseInt(sAway.score,10);
+    if(isNaN(rawH)||isNaN(rawA))return;
+    /* fx.flip=true means home/away are swapped vs our fixture order */
+    const a=fx.flip?rawA:rawH, b=fx.flip?rawH:rawA;
+    const old=STATE.gs[fx.key];
+    if(!old||+old.a!==a||+old.b!==b){STATE.gs[fx.key]={a,b};count++;}
+  });
+  return count;
+}
+async function syncScoresFromOpenFootball(){
+  const res=await fetch(SYNC_URL);
+  if(!res.ok)throw new Error(res.status);
+  const data=await res.json();
+  let count=0;
+  (data.matches||[]).forEach(m=>{
+    if(!m.score||!m.score.ft||!m.group)return;
+    const gL=m.group.replace('Group ','');
+    if(!GROUPS[gL])return;
+    const n1=resolveName(m.team1),n2=resolveName(m.team2);
+    const fx=findFxKey(gL,n1,n2);if(!fx)return;
+    const sc=m.score.ft;
+    const a=fx.flip?sc[1]:sc[0], b=fx.flip?sc[0]:sc[1];
+    const old=STATE.gs[fx.key];
+    if(!old||+old.a!==a||+old.b!==b){STATE.gs[fx.key]={a,b};count++;}
+  });
+  return count;
+}
 async function syncScores(){
   const btn=document.getElementById('syncBtn'),st=document.getElementById('syncStatus');
   btn.disabled=true; st.textContent=t('sync_ing'); st.className='syncstatus';
   try{
-    const res=await fetch(SYNC_URL);
-    if(!res.ok) throw new Error(res.status);
-    const data=await res.json();
     let count=0;
-    (data.matches||[]).forEach(m=>{
-      if(!m.score||!m.score.ft||!m.group)return;
-      const gL=m.group.replace('Group ','');
-      if(!GROUPS[gL])return;
-      const n1=resolveName(m.team1),n2=resolveName(m.team2);
-      const fx=findFxKey(gL,n1,n2);
-      if(!fx)return;
-      const sc=m.score.ft;
-      const a=fx.flip?sc[1]:sc[0], b=fx.flip?sc[0]:sc[1];
-      const old=STATE.gs[fx.key];
-      if(!old||+old.a!==a||+old.b!==b){STATE.gs[fx.key]={a,b};count++;}
-    });
+    /* Pass 1 — openfootball: full history backfill, no key needed */
+    try{count+=await syncScoresFromOpenFootball();}catch(e){console.warn('[Scores] openfootball',e);}
+    /* Pass 2 — scores.json (written by GitHub Actions): overwrites last 3 days with fresher data */
+    const n=await syncScoresFromOddsAPI();if(n>0)count+=n;
     if(count>0){save();renderAll();
       st.textContent=t('sync_done').replace('{n}',count);st.className='syncstatus ok';
     }else{st.textContent=t('sync_none');st.className='syncstatus';}
