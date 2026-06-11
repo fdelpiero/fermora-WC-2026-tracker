@@ -38,7 +38,7 @@
   .syncbtn.odds{color:var(--amber);border-color:#5a4a2e;background:#3a2c0c22}
   .syncbtn.odds:hover{background:#3a2c0c44;border-color:var(--amber)}
   .syncbtn.cal:hover{background:#0c3a2744;border-color:var(--green)}
-  .oddsrow{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap;align-items:center}
+  .oddsrow{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap;align-items:center;justify-content:center}
   .oddschip{display:inline-flex;align-items:center;gap:4px;font-family:'DM Mono',monospace;font-size:10.5px;font-weight:500;padding:3px 7px;border-radius:7px;border:1px solid var(--line2);background:#0a1320;color:var(--muted);letter-spacing:.2px;white-space:nowrap}
   .oddschip b{color:var(--ink);font-weight:500}
   .oddschip.h b{color:var(--green)}.oddschip.d b{color:var(--amber)}.oddschip.a b{color:#7fb2ff}
@@ -797,23 +797,25 @@ async function syncScores(){
    Source 2 (fallback): The Odds API — clean per-fixture home/draw/away, explicit
    CORS, but needs a free key (stored locally in your browser, never in the repo).
    Get one at https://the-odds-api.com — then click Sync Odds and paste it once. */
-/* ascending=false → newest events first; WC 2026 games are at the top that way */
+/* PRIMARY: odds.json is written to the repo every 3h by GitHub Actions (same-origin, no CORS).
+   Falls back to the live Gamma API if the file is missing or stale. */
+const PM_LOCAL='./odds.json';
+/* Live Gamma API fallbacks — blocked from AU without VPN, but kept as backup */
 const PM_GAMMA='https://gamma-api.polymarket.com/events?active=true&closed=false&limit=200&order=startDate&ascending=false';
-/* fallback: markets endpoint — handles binary yes/no sports markets */
-const PM_GAMMA_MKT='https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=500&order=volume&ascending=false';
-/* tag-filtered fallback */
-const PM_GAMMA_SOCCER='https://gamma-api.polymarket.com/events?active=true&closed=false&limit=200&tag_slug=soccer';
-/* direct slug test — confirms CORS + API access with a known match */
-const PM_SLUG_TEST='https://gamma-api.polymarket.com/events?slug=fifwc-mex-rsa-2026-06-11';
+/* Markets endpoint: soccer-tagged first (more WC hits in the top results), then unfiltered */
+const PM_GAMMA_MKT='https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=500&order=volume&ascending=false&tag_slug=soccer';
+const PM_GAMMA_MKT2='https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=500&order=volume&ascending=false';
 const ODDS_API_SPORT='soccer_fifa_world_cup';
 /* maps provider spellings -> tracker canonical names (extends SYNC_NAMES) */
 const ODDS_NAMES=Object.assign({},SYNC_NAMES,{
   "Korea Republic":"South Korea","Republic of Korea":"South Korea",
   "IR Iran":"Iran","Cote d'Ivoire":"Ivory Coast","Côte d'Ivoire":"Ivory Coast",
-  "Czech Republic":"Czechia","Bosnia and Herzegovina":"Bosnia & Herzegovina",
+  "Czech Republic":"Czechia",
+  "Bosnia":"Bosnia & Herzegovina","Bosnia and Herzegovina":"Bosnia & Herzegovina",
   "United States of America":"United States","USMNT":"United States","USA":"United States",
   "Turkey":"Türkiye","Cabo Verde":"Cape Verde","Cape Verdean Islands":"Cape Verde",
-  "Trinidad and Tobago":"Trinidad & Tobago"});
+  "Trinidad and Tobago":"Trinidad & Tobago","Congo":"Congo DR","DR Congo":"Congo DR",
+  "New Zealand":"New Zealand"});
 function oddsName(n){n=(n||'').trim();return ODDS_NAMES[n]||n;}
 /* returns all lowercase alias strings for a canonical name (for binary-market question matching) */
 function _pmAliases(canonical){
@@ -907,13 +909,34 @@ async function _pmFromMarkets(url,label){
     let n=0;
     Object.values(groups).forEach(mts=>{
       let fx=null,A=null,B=null;
+      /* Pass 1: "Will TEAM win vs OPPONENT?" — explicit opponent in question */
       for(const mt of mts){
-        const qm=(mt.question||'').match(/will (.+?) win(?:\s+vs\.?\s+(.+?))?[?.]?$/i);
-        if(qm&&qm[2]){const h=qm[1].trim(),a=qm[2].trim();
-          const f=findFxByTeams(h,a);if(f){fx=f;A=oddsName(h);B=oddsName(a);break;}}
+        const q=mt.question||mt.groupItemTitle||'';
+        const qm=q.match(/will (.+?) win(?:\s+vs\.?\s+(.+?))?[?.]?$/i);
+        if(qm&&qm[2]){
+          const h=qm[1].trim(),a=qm[2].trim();
+          const f=findFxByTeams(h,a);
+          if(f){fx=f;A=oddsName(h);B=oddsName(a);break;}
+        }
+      }
+      /* Pass 2: "Will TEAM win?" — collect all winning-team names, try every pair */
+      if(!fx){
+        const teams=[];
+        mts.forEach(mt=>{
+          const q=mt.question||mt.groupItemTitle||'';
+          const wm=q.match(/will (.+?) win/i);
+          if(wm)teams.push(wm[1].trim());
+        });
+        outer:for(let i=0;i<teams.length;i++){
+          for(let j=i+1;j<teams.length;j++){
+            if(teams[i]===teams[j])continue; // skip duplicates (spread markets repeat same team)
+            const f=findFxByTeams(teams[i],teams[j]);
+            if(f){fx=f;A=oddsName(teams[i]);B=oddsName(teams[j]);break outer;}
+          }
+        }
       }
       if(!fx)return;
-      const {pH,pD,pA}=_pmMatchOutcomes(mts,A,B);
+      const{pH,pD,pA}=_pmMatchOutcomes(mts,A,B);
       if(pH+pD+pA>0&&storeOdds(fx.key,fx.flip,pH,pD,pA,'PM'))n++;
     });
     return{n,dbg:`${label}:${arr.length}mk,${fifwcCount}wc,${n}odds`};
@@ -923,26 +946,26 @@ async function _pmFromMarkets(url,label){
 }
 async function syncOddsPolymarket(stEl){
   const show=s=>{if(stEl)stEl.textContent='PM: '+s;};
-  /* 1 — events, newest first */
-  show('events…');
-  let r=await _pmFromEvents(PM_GAMMA,'ev1');
-  console.log('[PM]',r.dbg);show(r.dbg);
-  if(r.n>0)return r;
-  /* 2 — events, soccer tag */
-  r=await _pmFromEvents(PM_GAMMA_SOCCER,'ev2');
-  console.log('[PM]',r.dbg);show(r.dbg);
-  if(r.n>0)return r;
-  /* 3 — markets by volume */
-  r=await _pmFromMarkets(PM_GAMMA_MKT,'mk1');
-  console.log('[PM]',r.dbg);show(r.dbg);
-  if(r.n>0)return r;
-  /* 4 — direct slug probe (confirms CORS + fifwc- format) */
-  show('slug probe…');
-  const probe=await _pmFromEvents(PM_SLUG_TEST,'slug');
-  console.log('[PM]',probe.dbg);show(probe.dbg);
-  if(probe.n>0)return probe;
-  /* return all debug strings for the prompt */
-  return{n:0,dbg:[r.dbg,probe.dbg].join(' | ')};
+  /* 1 — local odds.json written by GitHub Actions (same-origin, no CORS) */
+  show('loading…');
+  let r=await _pmFromEvents(PM_LOCAL,'local');
+  console.log('[PM]',r.dbg);
+  if(r.n>0){show(r.dbg);return r;}
+  /* 2 — live Gamma API events (works outside AU or with VPN) */
+  show('live events…');
+  r=await _pmFromEvents(PM_GAMMA,'live');
+  console.log('[PM]',r.dbg);
+  if(r.n>0){show(r.dbg);return r;}
+  /* 3 — markets, soccer-tagged (more WC hits in top results) */
+  r=await _pmFromMarkets(PM_GAMMA_MKT,'mkt');
+  console.log('[PM]',r.dbg);
+  if(r.n>0){show(r.dbg);return r;}
+  /* 4 — markets, untagged fallback (catches any WC markets missed by the soccer tag) */
+  r=await _pmFromMarkets(PM_GAMMA_MKT2,'mkt2');
+  console.log('[PM]',r.dbg);
+  if(r.n>0){show(r.dbg);return r;}
+  show(r.dbg);
+  return{n:0,dbg:r.dbg};
 }
 async function syncOddsTheOddsAPI(key){
   const url=`https://api.the-odds-api.com/v4/sports/${ODDS_API_SPORT}/odds/?regions=uk,eu&markets=h2h&oddsFormat=decimal&apiKey=${encodeURIComponent(key)}`;
@@ -962,20 +985,55 @@ async function syncOddsTheOddsAPI(key){
 async function syncOdds(){
   const btn=document.getElementById('oddsBtn'),st=document.getElementById('syncStatus');
   btn.disabled=true;st.textContent=t('odds_ing');st.className='syncstatus';
-  let n=0,failed=false;
-  const pmResult=await syncOddsPolymarket(st);
-  n=pmResult.n;
-  if(n===0){ // Polymarket gave nothing usable — try The Odds API
-    let key=STATE.oddsKey;
-    if(!key){
-      const diagMsg=pmResult.dbg?'\n\nDebug: '+pmResult.dbg:'';
-      key=(prompt('Polymarket odds unavailable right now.'+diagMsg+'\n\nOptional: paste a free The Odds API key (the-odds-api.com) to pull bookmaker odds instead. Leave blank to skip.')||'').trim();
-      if(key){STATE.oddsKey=key;}}
-    if(key){try{n=await syncOddsTheOddsAPI(key);failed=false;}catch(e){failed=true;}}
+
+  let n=0;
+
+  try{
+    // odds.json is generated by GitHub Actions from The Odds API.
+    // It should be the raw JSON response from:
+    // /v4/sports/soccer_fifa_world_cup/odds/?regions=au&markets=h2h&oddsFormat=decimal
+    const res=await fetch('./odds.json?ts='+Date.now());
+    if(!res.ok)throw new Error('odds.json HTTP '+res.status);
+
+    const games=await res.json();
+
+    (Array.isArray(games)?games:[]).forEach(gm=>{
+      const fx=findFxByTeams(gm.home_team,gm.away_team);if(!fx)return;
+
+      // Pick the first bookmaker that has a head-to-head market.
+      const bk=(gm.bookmakers||[]).find(b=>(b.markets||[]).some(m=>m.key==='h2h'));
+      if(!bk)return;
+
+      const mkt=(bk.markets||[]).find(x=>x.key==='h2h');if(!mkt)return;
+
+      let dH=0,dD=0,dA=0;
+      const H=oddsName(gm.home_team),A=oddsName(gm.away_team);
+
+      (mkt.outcomes||[]).forEach(o=>{
+        const dec=parseFloat(o.price||'0');if(dec<=0)return;
+        const imp=1/dec;
+        if(/draw/i.test(o.name))dD=imp;
+        else if(oddsName(o.name)===H)dH=imp;
+        else if(oddsName(o.name)===A)dA=imp;
+      });
+
+      if(dH+dD+dA>0&&storeOdds(fx.key,fx.flip,dH,dD,dA,'ODDS'))n++;
+    });
+  }catch(e){
+    console.warn('[Odds]',e);
   }
-  if(n>0){save();renderAll();st.textContent=t('odds_done').replace('{n}',n);st.className='syncstatus ok';}
-  else{st.textContent=t('odds_none');st.className='syncstatus';}
-  btn.disabled=false;setTimeout(()=>{st.textContent='';},6000);
+
+  if(n>0){
+    save();renderAll();
+    st.textContent=t('odds_done').replace('{n}',n);
+    st.className='syncstatus ok';
+  }else{
+    st.textContent=t('odds_none');
+    st.className='syncstatus';
+  }
+
+  btn.disabled=false;
+  setTimeout(()=>{st.textContent='';},6000);
 }
 function oddsChipHTML(key){
   const o=STATE.odds&&STATE.odds[key];if(!o)return '';
