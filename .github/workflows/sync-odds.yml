@@ -1,3 +1,20 @@
+name: Refresh Polymarket odds
+
+on:
+  schedule:
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Fetch and filter World Cup moneyline odds from Polymarket
         run: |
           echo "[]" > all-events.json
@@ -22,3 +39,11 @@
           echo "World Cup moneyline events found:"
           jq 'length' odds.json
           jq '.[0:20] | map({title, slug, marketTypes: [.markets[].sportsMarketType] | unique})' odds.json
+
+      - name: Commit if changed
+        run: |
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git add odds.json
+          git diff --staged --quiet || git commit -m "chore: sync Polymarket odds"
+          git push
