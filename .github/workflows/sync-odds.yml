@@ -14,18 +14,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch and filter WC 2026 odds from Polymarket
+      - name: Fetch and filter World Cup odds from Polymarket
         run: |
-          curl -sf \
-            "https://gamma-api.polymarket.com/events?active=true&closed=false&limit=1000&order=startDate&ascending=false" \
-            -H "Accept: application/json" \
-            -H "User-Agent: WC2026-Tracker/1.0" \
-            -o all-events.json || echo "[]" > all-events.json
+          echo "[]" > all-events.json
+
+          for OFFSET in 0 200 400 600 800 1000 1200 1400 1600 1800; do
+            curl -sf \
+              "https://gamma-api.polymarket.com/events?active=true&closed=false&limit=200&offset=$OFFSET&order=startDate&ascending=false" \
+              -H "Accept: application/json" \
+              -H "User-Agent: WC2026-Tracker/1.0" \
+              -o page.json || echo "[]" > page.json
+
+            jq -s '.[0] + .[1]' all-events.json page.json > merged.json
+            mv merged.json all-events.json
+          done
 
           jq '[.[] | select(
-            ((.title // "") + " " + (.slug // "") + " " + (.description // "")) 
-            | test("world cup|fifa|2026|soccer"; "i")
+            (
+              ((.title // "") + " " + (.slug // "") + " " + (.description // "") + " " +
+              ((.series // []) | map(.title // "" + " " + .slug // "") | join(" ")) + " " +
+              ((.tags // []) | map(.label // "" + " " + .slug // "") | join(" ")))
+              | test("world cup|world-cup|fifa world cup|fifa-world-cup"; "i")
+            )
+            and
+            (
+              ((.title // "") + " " + (.slug // "") + " " + (.description // ""))
+              | test("tennis|itf|crypto|bitcoin|xrp|doge|solana|hyperliquid|up or down"; "i")
+              | not
+            )
           )]' all-events.json > odds.json
+
+          echo "Filtered World Cup events:"
+          jq 'length' odds.json
+          jq '.[0:5] | map(.title)' odds.json
 
       - name: Commit if changed
         run: |
