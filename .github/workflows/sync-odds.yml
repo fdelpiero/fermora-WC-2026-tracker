@@ -1,6 +1,8 @@
-name: Refresh Polymarket odds
+name: Refresh World Cup odds
 
 on:
+  schedule:
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 permissions:
@@ -13,39 +15,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Debug World Cup Polymarket data
+      - name: Fetch World Cup odds from The Odds API
         run: |
-          echo "[]" > all-events.json
+          curl -sf \
+            "https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds/?regions=au&markets=h2h&oddsFormat=decimal&apiKey=${{ secrets.ODDS_API_KEY }}" \
+            -H "Accept: application/json" \
+            -o odds.json || echo "[]" > odds.json
 
-          for OFFSET in 0 200 400 600 800 1000 1200 1400 1600 1800 2000 2200 2400; do
-            curl -sf \
-              "https://gamma-api.polymarket.com/events?active=true&closed=false&limit=200&offset=$OFFSET&order=startDate&ascending=false" \
-              -H "Accept: application/json" \
-              -H "User-Agent: WC2026-Tracker/1.0" \
-              -o page.json || echo "[]" > page.json
-
-            jq -s '.[0] + .[1]' all-events.json page.json > merged.json
-            mv merged.json all-events.json
-          done
-
-          echo "How many fifwc events exist?"
-          jq '[.[] | select((.slug // "") | startswith("fifwc-"))] | length' all-events.json
-
-          echo "Show first 30 fifwc events and their market types:"
-          jq '[.[] | select((.slug // "") | startswith("fifwc-"))]
-              | .[0:30]
-              | map({
-                  title,
-                  slug,
-                  marketTypes: [.markets[]?.sportsMarketType] | unique
-                })' all-events.json
-
-          echo "[]" > odds.json
-
-      - name: Commit empty odds file
+      - name: Commit if changed
         run: |
           git config user.email "github-actions@github.com"
           git config user.name "GitHub Actions"
           git add odds.json
-          git diff --staged --quiet || git commit -m "debug: inspect Polymarket World Cup markets"
+          git diff --staged --quiet || git commit -m "chore: sync World Cup odds"
           git push
