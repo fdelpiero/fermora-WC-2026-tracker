@@ -14,13 +14,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch WC 2026 odds from Polymarket
+      - name: Fetch and filter WC 2026 odds from Polymarket
         run: |
           curl -sf \
-            "https://gamma-api.polymarket.com/events?active=true&closed=false&limit=200&search=World%20Cup%202026" \
+            "https://gamma-api.polymarket.com/events?active=true&closed=false&limit=1000&order=startDate&ascending=false" \
             -H "Accept: application/json" \
             -H "User-Agent: WC2026-Tracker/1.0" \
-            -o odds.json || echo "[]" > odds.json
+            -o all-events.json || echo "[]" > all-events.json
+
+          jq '[.[] | select(
+            ((.title // "") + " " + (.slug // "") + " " + (.description // "")) 
+            | test("world cup|fifa|2026|soccer"; "i")
+          )]' all-events.json > odds.json
 
       - name: Commit if changed
         run: |
