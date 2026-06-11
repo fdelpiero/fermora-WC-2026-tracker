@@ -797,7 +797,10 @@ async function syncScores(){
    Source 2 (fallback): The Odds API — clean per-fixture home/draw/away, explicit
    CORS, but needs a free key (stored locally in your browser, never in the repo).
    Get one at https://the-odds-api.com — then click Sync Odds and paste it once. */
-const PM_GAMMA='https://gamma-api.polymarket.com/events?active=true&closed=false&limit=500&order=startDate&ascending=true';
+/* ascending=false → newest events first; WC 2026 games are at the top that way */
+const PM_GAMMA='https://gamma-api.polymarket.com/events?active=true&closed=false&limit=200&order=startDate&ascending=false';
+/* fallback: markets endpoint — handles binary yes/no sports markets */
+const PM_GAMMA_MKT='https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=500&order=volume&ascending=false';
 const ODDS_API_SPORT='soccer_fifa_world_cup';
 /* maps provider spellings -> tracker names (extends SYNC_NAMES) */
 const ODDS_NAMES=Object.assign({},SYNC_NAMES,{
@@ -820,28 +823,81 @@ function toPct(h,d,a){const s=h+d+a;if(s<=0)return null;
 function storeOdds(key,flip,h,d,a,src){
   const p=flip?toPct(a,d,h):toPct(h,d,a);if(!p)return false;
   p.src=src;STATE.odds[key]=p;return true;}
-async function syncOddsPolymarket(){
-  const res=await fetch(PM_GAMMA);if(!res.ok)throw new Error('pm '+res.status);
-  const events=await res.json();let n=0;
-  (Array.isArray(events)?events:[]).forEach(ev=>{
-    if(!ev.slug||!ev.slug.startsWith('fifwc-'))return; // only per-match WC events
-    const title=(ev.title||'')+'';
-    // a per-match event reads like "Team A vs. Team B"
-    const m=title.match(/^(.+?)\s+vs\.?\s+(.+?)(?:\s*[:\-–].*)?$/i);if(!m)return;
-    const t1=m[1],t2=m[2];const fx=findFxByTeams(t1,t2);if(!fx)return;
-    const mk=(ev.markets||[]);if(!mk.length)return;
-    // Collect outcome->price across the event's markets.
-    let pH=0,pD=0,pA=0;const A=oddsName(t1),B=oddsName(t2);
-    mk.forEach(mt=>{
-      let outs,prices;try{outs=JSON.parse(mt.outcomes||'[]');prices=JSON.parse(mt.outcomePrices||'[]');}catch(e){return;}
-      outs.forEach((o,i)=>{const lbl=(o||'').toLowerCase(),pr=parseFloat(prices[i]||'0');
-        if(/draw|tie/.test(lbl))pD=Math.max(pD,pr);
-        else if(oddsName(o)===A||/\b(home)\b/.test(lbl))pH=Math.max(pH,pr);
-        else if(oddsName(o)===B||/\b(away)\b/.test(lbl))pA=Math.max(pA,pr);
-      });
+/* --- helpers for parsing both event-based and market-based Polymarket data --- */
+function _pmMatchOutcomes(mk,A,B){
+  /* Handles two formats:
+     (a) Multi-outcome: outcomes=["Mexico","Draw","South Africa"], outcomePrices=["0.69","0.21","0.11"]
+     (b) Binary yes/no: outcomes=["Yes","No"], question="Will Mexico win vs South Africa?" */
+  let pH=0,pD=0,pA=0;
+  mk.forEach(mt=>{
+    let outs,prices;try{outs=JSON.parse(mt.outcomes||'[]');prices=JSON.parse(mt.outcomePrices||'[]');}catch(e){return;}
+    const q=(mt.question||mt.groupItemTitle||'').toLowerCase();
+    outs.forEach((o,i)=>{
+      const lbl=(o||'').toLowerCase(),pr=parseFloat(prices[i]||'0');
+      if(/draw|tie/.test(lbl)){pD=Math.max(pD,pr);}
+      else if(oddsName(o)===A||/\b(home)\b/.test(lbl)){pH=Math.max(pH,pr);}
+      else if(oddsName(o)===B||/\b(away)\b/.test(lbl)){pA=Math.max(pA,pr);}
+      else if(lbl==='yes'){
+        /* binary market — infer which team/outcome from question text */
+        if(/draw|tie/.test(q))pD=Math.max(pD,pr);
+        else if(A&&q.indexOf(A.toLowerCase())>-1)pH=Math.max(pH,pr);
+        else if(B&&q.indexOf(B.toLowerCase())>-1)pA=Math.max(pA,pr);
+      }
     });
-    if(pH+pD+pA>0&&storeOdds(fx.key,fx.flip,pH,pD,pA,'PM'))n++;
   });
+  return {pH,pD,pA};
+}
+async function _pmFromEvents(url){
+  let n=0;
+  try{
+    const res=await fetch(url);if(!res.ok)return 0;
+    const events=await res.json();
+    (Array.isArray(events)?events:[]).forEach(ev=>{
+      if(!ev.slug||!ev.slug.startsWith('fifwc-'))return;
+      const title=(ev.title||'')+'';
+      const m=title.match(/^(.+?)\s+vs\.?\s+(.+?)(?:\s*[:\-–].*)?$/i);if(!m)return;
+      const t1=m[1],t2=m[2];const fx=findFxByTeams(t1,t2);if(!fx)return;
+      const mk=(ev.markets||[]);if(!mk.length)return;
+      const A=oddsName(t1),B=oddsName(t2);
+      const {pH,pD,pA}=_pmMatchOutcomes(mk,A,B);
+      if(pH+pD+pA>0&&storeOdds(fx.key,fx.flip,pH,pD,pA,'PM'))n++;
+    });
+  }catch(e){}
+  return n;
+}
+async function _pmFromMarkets(url){
+  /* Groups binary markets by their fifwc-xxx-yyy-date prefix, extracts H/D/A */
+  let n=0;
+  try{
+    const res=await fetch(url);if(!res.ok)return 0;
+    const mkts=await res.json();
+    const groups={};
+    (Array.isArray(mkts)?mkts:[]).forEach(mt=>{
+      if(!mt.slug)return;
+      const mp=mt.slug.match(/^(fifwc-[a-z]+-[a-z]+-\d{4}-\d{2}-\d{2})/);if(!mp)return;
+      const pfx=mp[1];
+      (groups[pfx]=groups[pfx]||[]).push(mt);
+    });
+    Object.values(groups).forEach(mts=>{
+      /* Try to identify teams from a question like "Will Mexico win vs South Africa?" */
+      let fx=null,A=null,B=null;
+      for(const mt of mts){
+        const qm=(mt.question||'').match(/will (.+?) win(?:\s+vs\.?\s+(.+?))?[?.]?$/i);
+        if(qm&&qm[2]){const h=qm[1].trim(),a=qm[2].trim();
+          const f=findFxByTeams(h,a);if(f){fx=f;A=oddsName(h);B=oddsName(a);break;}}
+      }
+      if(!fx)return;
+      const {pH,pD,pA}=_pmMatchOutcomes(mts,A,B);
+      if(pH+pD+pA>0&&storeOdds(fx.key,fx.flip,pH,pD,pA,'PM'))n++;
+    });
+  }catch(e){}
+  return n;
+}
+async function syncOddsPolymarket(){
+  /* Try 1: events endpoint, newest first (WC 2026 games appear at the top) */
+  let n=await _pmFromEvents(PM_GAMMA);
+  /* Try 2: markets endpoint — handles new binary yes/no sports market format */
+  if(n===0)n=await _pmFromMarkets(PM_GAMMA_MKT);
   return n;
 }
 async function syncOddsTheOddsAPI(key){
@@ -863,10 +919,10 @@ async function syncOdds(){
   const btn=document.getElementById('oddsBtn'),st=document.getElementById('syncStatus');
   btn.disabled=true;st.textContent=t('odds_ing');st.className='syncstatus';
   let n=0,failed=false;
-  try{n=await syncOddsPolymarket();}catch(e){failed=true;}
+  n=await syncOddsPolymarket();
   if(n===0){ // Polymarket gave nothing usable — try The Odds API
     let key=STATE.oddsKey;
-    if(!key){key=(prompt('Polymarket has no live per-match odds yet.\n\nOptional: paste a free The Odds API key (the-odds-api.com) to pull bookmaker odds instead. Leave blank to skip.')||'').trim();
+    if(!key){key=(prompt('Polymarket odds unavailable right now.\n\nOptional: paste a free The Odds API key (the-odds-api.com) to pull bookmaker odds instead. Leave blank to skip.')||'').trim();
       if(key){STATE.oddsKey=key;}}
     if(key){try{n=await syncOddsTheOddsAPI(key);failed=false;}catch(e){failed=true;}}
   }
