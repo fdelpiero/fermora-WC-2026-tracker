@@ -797,7 +797,7 @@ async function syncScores(){
    Source 2 (fallback): The Odds API — clean per-fixture home/draw/away, explicit
    CORS, but needs a free key (stored locally in your browser, never in the repo).
    Get one at https://the-odds-api.com — then click Sync Odds and paste it once. */
-const PM_GAMMA='https://gamma-api.polymarket.com/events?closed=false&limit=500&tag_slug=fifa-world-cup&related_tags=true';
+const PM_GAMMA='https://gamma-api.polymarket.com/events?active=true&closed=false&limit=500&order=startDate&ascending=true';
 const ODDS_API_SPORT='soccer_fifa_world_cup';
 /* maps provider spellings -> tracker names (extends SYNC_NAMES) */
 const ODDS_NAMES=Object.assign({},SYNC_NAMES,{
@@ -824,6 +824,7 @@ async function syncOddsPolymarket(){
   const res=await fetch(PM_GAMMA);if(!res.ok)throw new Error('pm '+res.status);
   const events=await res.json();let n=0;
   (Array.isArray(events)?events:[]).forEach(ev=>{
+    if(!ev.slug||!ev.slug.startsWith('fifwc-'))return; // only per-match WC events
     const title=(ev.title||'')+'';
     // a per-match event reads like "Team A vs. Team B"
     const m=title.match(/^(.+?)\s+vs\.?\s+(.+?)(?:\s*[:\-–].*)?$/i);if(!m)return;
