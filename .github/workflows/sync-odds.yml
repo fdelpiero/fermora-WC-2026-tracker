@@ -1,7 +1,7 @@
 name: Refresh World Cup odds & scores
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 22,4,10,16 * * *'
   workflow_dispatch:
 permissions:
   contents: write
