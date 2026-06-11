@@ -1,8 +1,6 @@
 name: Refresh Polymarket odds
 
 on:
-  schedule:
-    - cron: '0 */3 * * *'
   workflow_dispatch:
 
 permissions:
@@ -15,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch and filter World Cup moneyline odds from Polymarket
+      - name: Debug World Cup Polymarket data
         run: |
           echo "[]" > all-events.json
 
@@ -30,20 +28,24 @@ jobs:
             mv merged.json all-events.json
           done
 
-          jq '[.[] | select(
-            (.slug // "" | startswith("fifwc-"))
-            and
-            ((.markets // []) | any(.sportsMarketType == "moneyline"))
-          )]' all-events.json > odds.json
+          echo "How many fifwc events exist?"
+          jq '[.[] | select((.slug // "") | startswith("fifwc-"))] | length' all-events.json
 
-          echo "World Cup moneyline events found:"
-          jq 'length' odds.json
-          jq '.[0:20] | map({title, slug, marketTypes: [.markets[].sportsMarketType] | unique})' odds.json
+          echo "Show first 30 fifwc events and their market types:"
+          jq '[.[] | select((.slug // "") | startswith("fifwc-"))]
+              | .[0:30]
+              | map({
+                  title,
+                  slug,
+                  marketTypes: [.markets[]?.sportsMarketType] | unique
+                })' all-events.json
 
-      - name: Commit if changed
+          echo "[]" > odds.json
+
+      - name: Commit empty odds file
         run: |
           git config user.email "github-actions@github.com"
           git config user.name "GitHub Actions"
           git add odds.json
-          git diff --staged --quiet || git commit -m "chore: sync Polymarket odds"
+          git diff --staged --quiet || git commit -m "debug: inspect Polymarket World Cup markets"
           git push
