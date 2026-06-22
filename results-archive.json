@@ -1,1 +1,24 @@
-
+[
+  {
+    "id": "archive-sk-cze-20260611",
+    "home_team": "South Korea",
+    "away_team": "Czech Republic",
+    "completed": true,
+    "scores": [
+      {"name": "South Korea", "score": "2"},
+      {"name": "Czech Republic", "score": "1"}
+    ],
+    "commence_time": "2026-06-11T20:00:00Z"
+  },
+  {
+    "id": "archive-cze-rsa-20260618",
+    "home_team": "Czech Republic",
+    "away_team": "South Africa",
+    "completed": true,
+    "scores": [
+      {"name": "Czech Republic", "score": "1"},
+      {"name": "South Africa", "score": "1"}
+    ],
+    "commence_time": "2026-06-18T16:00:00Z"
+  }
+]
