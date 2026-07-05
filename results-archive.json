@@ -20,5 +20,16 @@
       {"name": "South Africa", "score": "1"}
     ],
     "commence_time": "2026-06-18T16:00:00Z"
-  }
+  },
+  {
+  "id": "archive-bel-sen-20260701",
+  "home_team": "Belgium",
+  "away_team": "Senegal",
+  "completed": true,
+  "scores": [
+    {"name": "Belgium", "score": "3"},
+    {"name": "Senegal", "score": "2"}
+  ],
+  "commence_time": "2026-07-01T21:00:00Z"
+}
 ]
