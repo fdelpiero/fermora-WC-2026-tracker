@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Fetch World Cup odds
         run: |
           curl -sf \
@@ -20,8 +19,6 @@ jobs:
             -D /tmp/odds_headers.txt \
             -o odds.json || echo "[]" > odds.json
           grep -i "x-requests" /tmp/odds_headers.txt || true
-
-
       - name: Fetch World Cup scores
         run: |
           curl -sf \
@@ -30,11 +27,21 @@ jobs:
             -D /tmp/scores_headers.txt \
             -o scores.json || echo "[]" > scores.json
           grep -i "x-requests" /tmp/scores_headers.txt || true
-
+      - name: Merge completed matches into permanent archive
+        run: |
+          [ -f results-archive.json ] || echo "[]" > results-archive.json
+          jq -s '
+            (.[1] // [])
+            | map(select(.completed == true and .scores != null))
+            | map({id, home_team, away_team, scores, commence_time}) as $new
+            | ((.[0] // []) + $new)
+            | unique_by(.id)
+          ' results-archive.json scores.json > results-archive.tmp.json
+          mv results-archive.tmp.json results-archive.json
       - name: Commit if changed
         run: |
           git config user.email "github-actions@github.com"
           git config user.name "GitHub Actions"
-          git add odds.json scores.json
+          git add odds.json scores.json results-archive.json
           git diff --staged --quiet || git commit -m "chore: sync World Cup odds & scores"
           git push
