@@ -29,14 +29,14 @@ jobs:
           grep -i "x-requests" /tmp/scores_headers.txt || true
       - name: Merge completed matches into permanent archive
         run: |
-          [ -f results-archive.json ] || echo "[]" > results-archive.json
-          jq -s '
-            (.[1] // [])
+          jq -e 'type=="array"' results-archive.json > /dev/null 2>&1 || echo "[]" > results-archive.json
+          jq -n --slurpfile old results-archive.json --slurpfile new scores.json '
+            ($new[0] // [])
             | map(select(.completed == true and .scores != null))
-            | map({id, home_team, away_team, scores, commence_time}) as $new
-            | ((.[0] // []) + $new)
+            | map({id, home_team, away_team, scores, commence_time}) as $newMatches
+            | (($old[0] // []) + $newMatches)
             | unique_by(.id)
-          ' results-archive.json scores.json > results-archive.tmp.json
+          ' > results-archive.tmp.json
           mv results-archive.tmp.json results-archive.json
       - name: Commit if changed
         run: |
