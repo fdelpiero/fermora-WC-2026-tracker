@@ -16,6 +16,22 @@
     "commence_time": "2026-07-06T19:00:00Z"
   },
   {
+    "id": "190922affd0be754bfefd71548dbf90d",
+    "home_team": "Argentina",
+    "away_team": "Egypt",
+    "scores": [
+      {
+        "name": "Argentina",
+        "score": "3"
+      },
+      {
+        "name": "Egypt",
+        "score": "2"
+      }
+    ],
+    "commence_time": "2026-07-07T16:01:00Z"
+  },
+  {
     "id": "810f80b3ae79f5e86b3747ca15718ed8",
     "home_team": "USA",
     "away_team": "Belgium",
@@ -78,6 +94,22 @@
       }
     ],
     "commence_time": "2026-07-05T20:00:00Z"
+  },
+  {
+    "id": "a6da973c5749ce60adab77d64b3664f4",
+    "home_team": "Switzerland",
+    "away_team": "Colombia",
+    "scores": [
+      {
+        "name": "Switzerland",
+        "score": "0"
+      },
+      {
+        "name": "Colombia",
+        "score": "0"
+      }
+    ],
+    "commence_time": "2026-07-07T20:00:00Z"
   },
   {
     "id": "archive-bel-sen-20260701",
