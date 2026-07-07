@@ -16,6 +16,22 @@
     "commence_time": "2026-07-06T19:00:00Z"
   },
   {
+    "id": "810f80b3ae79f5e86b3747ca15718ed8",
+    "home_team": "USA",
+    "away_team": "Belgium",
+    "scores": [
+      {
+        "name": "USA",
+        "score": "1"
+      },
+      {
+        "name": "Belgium",
+        "score": "4"
+      }
+    ],
+    "commence_time": "2026-07-07T00:00:00Z"
+  },
+  {
     "id": "88e032a2b2e5042d26db3f0da1df924a",
     "home_team": "Colombia",
     "away_team": "Ghana",
