@@ -4,8 +4,14 @@
     "home_team": "Portugal",
     "away_team": "Spain",
     "scores": [
-      {"name": "Portugal", "score": "0"},
-      {"name": "Spain", "score": "1"}
+      {
+        "name": "Portugal",
+        "score": "0"
+      },
+      {
+        "name": "Spain",
+        "score": "1"
+      }
     ],
     "commence_time": "2026-07-06T19:00:00Z"
   },
@@ -15,8 +21,14 @@
     "away_team": "Egypt",
     "completed": true,
     "scores": [
-      {"name": "Argentina", "score": "3"},
-      {"name": "Egypt", "score": "2"}
+      {
+        "name": "Argentina",
+        "score": "3"
+      },
+      {
+        "name": "Egypt",
+        "score": "2"
+      }
     ],
     "commence_time": "2026-07-07T16:01:00Z"
   },
@@ -26,8 +38,14 @@
     "away_team": "Belgium",
     "completed": true,
     "scores": [
-      {"name": "USA", "score": "1"},
-      {"name": "Belgium", "score": "4"}
+      {
+        "name": "USA",
+        "score": "1"
+      },
+      {
+        "name": "Belgium",
+        "score": "4"
+      }
     ],
     "commence_time": "2026-07-07T00:00:00Z"
   },
@@ -36,8 +54,14 @@
     "home_team": "Colombia",
     "away_team": "Ghana",
     "scores": [
-      {"name": "Colombia", "score": "1"},
-      {"name": "Ghana", "score": "0"}
+      {
+        "name": "Colombia",
+        "score": "1"
+      },
+      {
+        "name": "Ghana",
+        "score": "0"
+      }
     ],
     "commence_time": "2026-07-04T01:30:00Z"
   },
@@ -46,8 +70,14 @@
     "home_team": "Canada",
     "away_team": "Morocco",
     "scores": [
-      {"name": "Canada", "score": "0"},
-      {"name": "Morocco", "score": "3"}
+      {
+        "name": "Canada",
+        "score": "0"
+      },
+      {
+        "name": "Morocco",
+        "score": "3"
+      }
     ],
     "commence_time": "2026-07-04T17:00:00Z"
   },
@@ -56,22 +86,49 @@
     "home_team": "Brazil",
     "away_team": "Norway",
     "scores": [
-      {"name": "Brazil", "score": "1"},
-      {"name": "Norway", "score": "2"}
+      {
+        "name": "Brazil",
+        "score": "1"
+      },
+      {
+        "name": "Norway",
+        "score": "2"
+      }
     ],
     "commence_time": "2026-07-05T20:00:00Z"
   },
   {
-    "id": "archive-swi-col-20260707",
+    "id": "a6da973c5749ce60adab77d64b3664f4",
     "home_team": "Switzerland",
     "away_team": "Colombia",
+    "scores": [
+      {
+        "name": "Switzerland",
+        "score": "0"
+      },
+      {
+        "name": "Colombia",
+        "score": "0"
+      }
+    ],
+    "commence_time": "2026-07-07T20:00:00Z"
+  },
+  {
+    "id": "archive-arg-cpv-20260703",
+    "home_team": "Argentina",
+    "away_team": "Cape Verde",
     "completed": true,
     "scores": [
-      {"name": "Switzerland", "score": "0"},
-      {"name": "Colombia", "score": "0"}
+      {
+        "name": "Argentina",
+        "score": "3"
+      },
+      {
+        "name": "Cape Verde",
+        "score": "2"
+      }
     ],
-    "commence_time": "2026-07-07T20:00:00Z",
-    "note": "0-0 after AET; Switzerland won 4-3 on penalties"
+    "commence_time": "2026-07-03T22:00:00Z"
   },
   {
     "id": "archive-bel-sen-20260701",
@@ -79,8 +136,14 @@
     "away_team": "Senegal",
     "completed": true,
     "scores": [
-      {"name": "Belgium", "score": "3"},
-      {"name": "Senegal", "score": "2"}
+      {
+        "name": "Belgium",
+        "score": "3"
+      },
+      {
+        "name": "Senegal",
+        "score": "2"
+      }
     ],
     "commence_time": "2026-07-01T21:00:00Z"
   },
@@ -90,8 +153,14 @@
     "away_team": "South Africa",
     "completed": true,
     "scores": [
-      {"name": "Czech Republic", "score": "1"},
-      {"name": "South Africa", "score": "1"}
+      {
+        "name": "Czech Republic",
+        "score": "1"
+      },
+      {
+        "name": "South Africa",
+        "score": "1"
+      }
     ],
     "commence_time": "2026-06-18T16:00:00Z"
   },
@@ -101,18 +170,48 @@
     "away_team": "Czech Republic",
     "completed": true,
     "scores": [
-      {"name": "South Korea", "score": "2"},
-      {"name": "Czech Republic", "score": "1"}
+      {
+        "name": "South Korea",
+        "score": "2"
+      },
+      {
+        "name": "Czech Republic",
+        "score": "1"
+      }
     ],
     "commence_time": "2026-06-11T20:00:00Z"
+  },
+  {
+    "id": "archive-swi-col-20260707",
+    "home_team": "Switzerland",
+    "away_team": "Colombia",
+    "completed": true,
+    "scores": [
+      {
+        "name": "Switzerland",
+        "score": "0"
+      },
+      {
+        "name": "Colombia",
+        "score": "0"
+      }
+    ],
+    "commence_time": "2026-07-07T20:00:00Z",
+    "note": "0-0 after AET; Switzerland won 4-3 on penalties"
   },
   {
     "id": "c798a1ffdeda28e82d930e7145a8ff10",
     "home_team": "Paraguay",
     "away_team": "France",
     "scores": [
-      {"name": "Paraguay", "score": "0"},
-      {"name": "France", "score": "1"}
+      {
+        "name": "Paraguay",
+        "score": "0"
+      },
+      {
+        "name": "France",
+        "score": "1"
+      }
     ],
     "commence_time": "2026-07-04T21:03:00Z"
   },
@@ -121,20 +220,15 @@
     "home_team": "Mexico",
     "away_team": "England",
     "scores": [
-      {"name": "Mexico", "score": "2"},
-      {"name": "England", "score": "3"}
+      {
+        "name": "Mexico",
+        "score": "2"
+      },
+      {
+        "name": "England",
+        "score": "3"
+      }
     ],
     "commence_time": "2026-07-06T01:00:00Z"
-  },
-  {
-    "id": "archive-arg-cpv-20260703",
-    "home_team": "Argentina",
-    "away_team": "Cape Verde",
-    "completed": true,
-    "scores": [
-      {"name": "Argentina", "score": "3"},
-      {"name": "Cape Verde", "score": "2"}
-    ],
-    "commence_time": "2026-07-03T22:00:00Z"
   }
 ]
