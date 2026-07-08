@@ -363,114 +363,119 @@ function findMatchByTeams(a,b){
   return null;
 }
 
+/* bulletproof knockout sync helpers */
+function isoMillis(v){
+  const t=Date.parse(v||'');
+  return isNaN(t)?null:t;
+}
+function matchIsoUTC(id){
+  const m=MATCH_META[id];
+  if(!m||!m.iso)return null;
+  return isoMillis(m.iso);
+}
+function minutesApart(a,b){
+  if(a==null||b==null)return Infinity;
+  return Math.abs(a-b)/60000;
+}
+function findMatchByKickoff(gm){
+  const gms=isoMillis(gm.commence_time);
+  if(gms==null)return null;
+  let best=null,bestDiff=Infinity;
+  for(const id of ALL_IDS){
+    const diff=minutesApart(gms,matchIsoUTC(id));
+    if(diff<bestDiff){bestDiff=diff;best=id;}
+  }
+  if(!best||bestDiff>90)return null; // tolerate small feed differences, but avoid wrong-day matches
+  const t=mt(best);
+  const h=findTeamByName(gm.home_team),a=findTeamByName(gm.away_team);
+  let flip=false;
+  if(t.a&&t.b&&h&&a){
+    if(t.a===h&&t.b===a)flip=false;
+    else if(t.a===a&&t.b===h)flip=true;
+    else return null; // same time but teams do not fit this bracket slot
+  }
+  return {id:best,flip,method:'time'};
+}
+function resultQuality(gm){
+  let q=0;
+  if(gm&&gm.completed===true)q+=10;
+  if(gm&&gm.scores)q+=5;
+  if(gm&&gm.note)q+=8;
+  return q;
+}
+function resultKey(gm){
+  const h=findTeamByName(gm.home_team)||resolveName(gm.home_team||'');
+  const a=findTeamByName(gm.away_team)||resolveName(gm.away_team||'');
+  const teams=[h,a].sort().join('|').toLowerCase();
+  const day=(gm.commence_time||'').slice(0,10);
+  return `${day}|${teams}`;
+}
+function mergeResultLists(lists){
+  const out=new Map();
+  lists.flat().filter(Boolean).forEach(gm=>{
+    if(!gm.scores)return;
+    const key=resultKey(gm);
+    const prev=out.get(key);
+    if(!prev||resultQuality(gm)>=resultQuality(prev))out.set(key,gm);
+  });
+  return [...out.values()].sort((a,b)=>resultQuality(a)-resultQuality(b)); // better entries later, so penalties can win
+}
+function penaltyInfo(gm){
+  const note=String(gm.note||'');
+  const m=note.match(/(.+?)\s+won\s+(\d+)\s*[-–]\s*(\d+)\s+on penalties/i);
+  if(!m)return null;
+  const winner=findTeamByName(m[1].trim());
+  if(!winner)return null;
+  return {winner,winPens:parseInt(m[2],10),losePens:parseInt(m[3],10)};
+}
+function applyGameToMatch(gm,fx){
+  const id=fx.id,t=mt(id);if(!t.a||!t.b)return false;
+  const h=findTeamByName(gm.home_team),a=findTeamByName(gm.away_team);if(!h||!a)return false;
+  const sH=gm.scores.find(s=>findTeamByName(s.name)===h);
+  const sA=gm.scores.find(s=>findTeamByName(s.name)===a);
+  if(!sH||!sA)return false;
+  const rH=parseInt(sH.score,10),rA=parseInt(sA.score,10);
+  if(isNaN(rH)||isNaN(rA))return false;
+
+  const scoreA=fx.flip?rA:rH,scoreB=fx.flip?rH:rA;
+  const before=JSON.stringify(gs(id));
+  ss(id,'a',scoreA);ss(id,'b',scoreB);
+
+  const pen=penaltyInfo(gm);
+  if(pen && scoreA===scoreB){
+    if(pen.winner===t.a){ss(id,'pa',pen.winPens);ss(id,'pb',pen.losePens);}
+    else if(pen.winner===t.b){ss(id,'pa',pen.losePens);ss(id,'pb',pen.winPens);}
+  }
+  delete STATE.picks[id];
+  return JSON.stringify(gs(id))!==before;
+}
+
 /* ============ SYNC SCORES ============ */
 const BASE='https://fdelpiero.github.io/fermora-WC-2026-tracker/';
-/* Backup source from the original tracker: openfootball community JSON on GitHub.
-   It includes finished knockout matches and can include penalty arrays such as score.p / score.pen / score.penalties. */
-const OPENFOOTBALL_SYNC_URL='https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json';
-
-function writeSyncedScore(id,a,b,pa,pb){
-  if(id==null||a===''||b===''||isNaN(+a)||isNaN(+b))return 0;
-  const old=gs(id);
-  const next={
-    a:+a,
-    b:+b,
-    pa:(pa!==undefined&&pa!==null&&pa!==''&&!isNaN(+pa))?+pa:(old.pa!==undefined?old.pa:''),
-    pb:(pb!==undefined&&pb!==null&&pb!==''&&!isNaN(+pb))?+pb:(old.pb!==undefined?old.pb:'')
-  };
-  const changed=(
-    (''+(old.a??''))!==(''+next.a)||
-    (''+(old.b??''))!==(''+next.b)||
-    (''+(old.pa??''))!==(''+next.pa)||
-    (''+(old.pb??''))!==(''+next.pb)
-  );
-  if(!changed)return 0;
-  if(!STATE.scores[id])STATE.scores[id]={a:'',b:'',pa:'',pb:''};
-  STATE.scores[id]={...STATE.scores[id],...next};
-  /* When a synced score arrives, remove any old manual pick for that match.
-     If it is tied, gw() will wait for penalties; if penalties are present, gw() auto-advances. */
-  delete STATE.picks[id];
-  return 1;
-}
-
-function penaltyPairFromOpenFootballScore(score,flip){
-  if(!score)return {pa:'',pb:''};
-  const ps=score.p||score.pen||score.pens||score.penalties||score.shootout||score.shootout_scores;
-  if(Array.isArray(ps)&&ps.length===2){
-    return {pa:flip?ps[1]:ps[0],pb:flip?ps[0]:ps[1]};
-  }
-  return {pa:'',pb:''};
-}
-
-async function syncScoresFromOpenFootball(){
-  const res=await fetch(OPENFOOTBALL_SYNC_URL+'?ts='+Date.now());
-  if(!res.ok)throw new Error('OpenFootball HTTP '+res.status);
-  const data=await res.json();
-  const matches=Array.isArray(data.matches)?data.matches:[];
-  let count=0;
-  matches.forEach(m=>{
-    if(!m.score||!m.score.ft)return;
-    const fx=findMatchByTeams(resolveName(m.team1),resolveName(m.team2));if(!fx)return;
-    const ft=m.score.ft;if(!Array.isArray(ft)||ft.length<2)return;
-    const a=fx.flip?ft[1]:ft[0],b=fx.flip?ft[0]:ft[1];
-    const pen=penaltyPairFromOpenFootballScore(m.score,fx.flip);
-    count+=writeSyncedScore(fx.id,a,b,pen.pa,pen.pb);
-  });
-  return count;
-}
-
-async function syncScoresFromOddsJson(){
-  const res=await fetch(BASE+'scores.json?ts='+Date.now());
-  if(!res.ok)return 0;
-  const games=await res.json();
-  if(!Array.isArray(games))return 0;
-  let count=0;
-  games.forEach(gm=>{
-    if(!gm.completed||!gm.scores)return;
-    const fx=findMatchByTeams(gm.home_team,gm.away_team);if(!fx)return;
-    const sH=gm.scores.find(s=>findTeamByName(s.name)===findTeamByName(gm.home_team));
-    const sA=gm.scores.find(s=>findTeamByName(s.name)===findTeamByName(gm.away_team));
-    if(!sH||!sA)return;
-    const rH=parseInt(sH.score,10),rA=parseInt(sA.score,10);if(isNaN(rH)||isNaN(rA))return;
-    const a=fx.flip?rA:rH,b=fx.flip?rH:rA;
-    /* This file generally only has normal scores, so existing penalties from openfootball are preserved. */
-    count+=writeSyncedScore(fx.id,a,b);
-  });
-  return count;
-}
-
-async function syncScoresFromArchive(){
-  const res=await fetch(BASE+'results-archive.json?ts='+Date.now());
-  if(!res.ok)return 0;
-  const games=await res.json();
-  if(!Array.isArray(games))return 0;
-  let count=0;
-  games.forEach(gm=>{
-    if(!gm.scores)return;
-    const fx=findMatchByTeams(gm.home_team,gm.away_team);if(!fx)return;
-    const sH=gm.scores.find(s=>findTeamByName(s.name)===findTeamByName(gm.home_team));
-    const sA=gm.scores.find(s=>findTeamByName(s.name)===findTeamByName(gm.away_team));
-    if(!sH||!sA)return;
-    const rH=parseInt(sH.score,10),rA=parseInt(sA.score,10);if(isNaN(rH)||isNaN(rA))return;
-    const a=fx.flip?rA:rH,b=fx.flip?rH:rA;
-    /* Permanent archive catch-all; preserve penalties already obtained from openfootball. */
-    count+=writeSyncedScore(fx.id,a,b);
-  });
-  return count;
-}
-
 async function syncScores(){
   const btn=document.getElementById('syncBtn'),st=document.getElementById('syncStatus');
   btn.disabled=true;st.textContent='Syncing…';st.className='syncstatus';
   let count=0;
   try{
-    /* Pass 1 — openfootball backup first: full history and penalty shootout arrays when available. */
-    try{count+=await syncScoresFromOpenFootball();}catch(e){console.warn('[Sync] openfootball',e);}
-    /* Pass 2 — GitHub Actions scores.json: fresher rolling feed for recent matches. */
-    try{count+=await syncScoresFromOddsJson();}catch(e){console.warn('[Sync] scores.json',e);}
-    /* Pass 3 — results-archive.json: permanent local archive from your tracker repo. */
-    try{count+=await syncScoresFromArchive();}catch(e){console.warn('[Sync] archive',e);}
-    if(count>0){save();renderAll();st.textContent=`✓ ${count} score${count>1?'s':''} updated`;st.className='syncstatus ok';}
+    let live=[],archive=[];
+    try{
+      const res=await fetch(BASE+'scores.json?ts='+Date.now());
+      if(res.ok){const games=await res.json();if(Array.isArray(games))live=games;}
+    }catch(e){console.warn('[Sync] scores.json',e);}
+    try{
+      const res=await fetch(BASE+'results-archive.json?ts='+Date.now());
+      if(res.ok){const games=await res.json();if(Array.isArray(games))archive=games;}
+    }catch(e){console.warn('[Sync] archive',e);}
+
+    const games=mergeResultLists([live,archive]);
+    games.forEach(gm=>{
+      if(!gm.scores)return;
+      let fx=findMatchByKickoff(gm) || findMatchByTeams(gm.home_team,gm.away_team);
+      if(!fx)return;
+      if(applyGameToMatch(gm,fx))count++;
+    });
+
+    if(count>0){save();renderAll();st.textContent=`✓ ${count} result${count>1?'s':''} synced`;st.className='syncstatus ok';}
     else{st.textContent='All scores up to date';st.className='syncstatus';}
   }catch(e){st.textContent='Sync failed';st.className='syncstatus err';console.warn('[Sync]',e);}
   btn.disabled=false;setTimeout(()=>{st.textContent='';},5000);
