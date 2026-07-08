@@ -190,8 +190,18 @@
       {
         "name": "England",
         "score": "3"
-      }
     ],
     "commence_time": "2026-07-06T01:00:00Z"
   }
+  {
+  "id": "archive-arg-cpv-20260703",
+  "home_team": "Argentina",
+  "away_team": "Cape Verde",
+  "completed": true,
+  "scores": [
+    {"name": "Argentina", "score": "3"},
+    {"name": "Cape Verde", "score": "2"}
+  ],
+  "commence_time": "2026-07-03T22:00:00Z"
+}
 ]
