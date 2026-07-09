@@ -200,6 +200,22 @@
     "note": "0-0 after AET; Switzerland won 4-3 on penalties"
   },
   {
+    "id": "b6e926d7f026782b9cab2fa02b823d92",
+    "home_team": "France",
+    "away_team": "Morocco",
+    "scores": [
+      {
+        "name": "France",
+        "score": "2"
+      },
+      {
+        "name": "Morocco",
+        "score": "0"
+      }
+    ],
+    "commence_time": "2026-07-09T20:00:00Z"
+  },
+  {
     "id": "c798a1ffdeda28e82d930e7145a8ff10",
     "home_team": "Paraguay",
     "away_team": "France",
