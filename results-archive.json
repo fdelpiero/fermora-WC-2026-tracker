@@ -33,6 +33,22 @@
     "commence_time": "2026-07-07T16:01:00Z"
   },
   {
+    "id": "200d9cd5eda092c7eb778cc104cd2fd2",
+    "home_team": "Argentina",
+    "away_team": "Switzerland",
+    "scores": [
+      {
+        "name": "Argentina",
+        "score": "3"
+      },
+      {
+        "name": "Switzerland",
+        "score": "1"
+      }
+    ],
+    "commence_time": "2026-07-12T01:00:00Z"
+  },
+  {
     "id": "810f80b3ae79f5e86b3747ca15718ed8",
     "home_team": "USA",
     "away_team": "Belgium",
@@ -246,6 +262,22 @@
       }
     ],
     "commence_time": "2026-07-06T01:00:00Z"
+  },
+  {
+    "id": "e66e4478b739fa0657a7a11235e1fcee",
+    "home_team": "Norway",
+    "away_team": "England",
+    "scores": [
+      {
+        "name": "Norway",
+        "score": "1"
+      },
+      {
+        "name": "England",
+        "score": "2"
+      }
+    ],
+    "commence_time": "2026-07-11T21:01:00Z"
   },
   {
     "id": "fca257de4583bd4bc592e8b2a8f24ad7",
