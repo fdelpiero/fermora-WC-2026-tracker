@@ -49,6 +49,22 @@
     "commence_time": "2026-07-12T01:00:00Z"
   },
   {
+    "id": "7a49e7985534a5ff3428740d0b630fd7",
+    "home_team": "France",
+    "away_team": "England",
+    "scores": [
+      {
+        "name": "France",
+        "score": "4"
+      },
+      {
+        "name": "England",
+        "score": "6"
+      }
+    ],
+    "commence_time": "2026-07-18T21:00:00Z"
+  },
+  {
     "id": "810f80b3ae79f5e86b3747ca15718ed8",
     "home_team": "USA",
     "away_team": "Belgium",
